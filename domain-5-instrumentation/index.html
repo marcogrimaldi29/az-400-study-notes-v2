@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain 5 · Instrumentation Strategy — AZ-400</title>
+  <meta name="description" content="AZ-400 Domain 5 study notes: Azure Monitor and Log Analytics, Application Insights, VM/Container/Storage/Network Insights, monitoring in GitHub, alerts for GitHub Actions and Azure Pipelines, infrastructure and application metrics, distributed tracing, and basic Kusto Query Language (KQL).">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-5-instrumentation/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Domain 5 · Instrumentation Strategy">
+  <meta property="og:description" content="Azure Monitor, Application Insights, the Insights family, alerts, distributed tracing and KQL for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-5-instrumentation/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Domain 5 · Instrumentation Strategy">
+  <meta name="twitter:description" content="Azure Monitor, Application Insights, Insights family, alerts, tracing and KQL.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Domain 5 · Instrumentation Strategy","description":"Azure Monitor, Application Insights, the Insights family, alerts, distributed tracing and KQL for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-5-instrumentation/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 5 · Instrumentation","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-5-instrumentation/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="instrument">
+  <div class="layout" style="--accent:var(--d5)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 5 · 5–10%</div>
+        <h1>Implement an instrumentation strategy</h1>
+        <p>The smallest domain, and the cheapest to earn marks on: knowing which Azure Monitor feature collects which signal, how to alert on it, how a request is traced across services, and enough KQL to read the data.</p>
+      </div>
+
+      <div class="card">
+        <strong>Two objectives:</strong>
+        <ul style="margin-bottom:0">
+          <li><a href="#monitoring">Configure monitoring for a DevOps environment</a> — Azure Monitor, the Insights family, GitHub insights, alerts</li>
+          <li><a href="#analyze">Analyze metrics from instrumentation</a> — infra &amp; app metrics, distributed tracing, basic KQL</li>
+        </ul>
+        <p style="margin:10px 0 0">The July 2026 refresh flagged <em>both</em> Domain 5 objectives as minor updates — expect a little more GitHub-side monitoring and the current Azure Monitor naming.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="monitoring"><span class="num">5.1</span> Configure monitoring for a DevOps environment</h2>
+
+      <h3 id="azure-monitor">Azure Monitor — the platform</h3>
+      <p>Azure Monitor is the single pane through which all telemetry flows. Everything else in this domain is a feature of it.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  subgraph SRC[Sources]
+    APP[Applications]
+    INF[VMs / containers]
+    AZ[Azure resources]
+    ADO[Azure DevOps]
+    GH[GitHub]
+  end
+  subgraph STORE[Data stores]
+    MET[(Metrics<br/>time-series)]
+    LOG[(Logs<br/>Log Analytics)]
+  end
+  SRC --> MET
+  SRC --> LOG
+  MET --> OUT
+  LOG --> OUT
+  subgraph OUT[Consume]
+    DASH[Dashboards / Workbooks]
+    AL[Alerts + action groups]
+    KQL[KQL queries]
+    PBI[Power BI / Grafana]
+  end
+        </div>
+        <div class="mm-cap">Two pillars — Metrics (numeric time-series) and Logs (Log Analytics) — feed dashboards, alerts and KQL.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Data type</th><th>Stored in</th><th>Queried with</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Metrics</strong></td><td>Azure Monitor Metrics (time-series DB)</td><td>Metrics explorer</td><td>CPU %, request count, response time</td></tr>
+            <tr><td><strong>Logs</strong></td><td>Log Analytics workspace</td><td><strong>KQL</strong></td><td>App logs, audit events, traces</td></tr>
+            <tr><td><strong>Traces</strong></td><td>Application Insights (in Log Analytics)</td><td>KQL / transaction view</td><td>Distributed request spans</td></tr>
+            <tr><td><strong>Changes</strong></td><td>Change Analysis</td><td>Portal</td><td>Resource/config change history</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — metrics vs logs</p>
+        <p><strong>Metrics</strong> are lightweight, pre-aggregated numeric time-series — cheap, fast, near-real-time, ideal for alerting and dashboards. <strong>Logs</strong> are rich, structured/unstructured records in Log Analytics you query with KQL — flexible but higher latency and cost. "Alert when CPU &gt; 80% for 5 minutes" is a <strong>metric alert</strong>; "find every request that returned 500 in the last hour" is a <strong>log query</strong>.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Agents — use the Azure Monitor Agent</p>
+        <p>The <strong>Azure Monitor Agent (AMA)</strong> is the current agent for VMs and Arc servers, configured via <strong>Data Collection Rules (DCRs)</strong>. The <strong>Log Analytics agent (MMA)</strong> is <strong>retired</strong> — if it appears as an answer for a new deployment, it is wrong.</p>
+      </div>
+
+      <h3 id="app-insights">Application Insights (APM)</h3>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Capability</th><th>Answers</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Live Metrics</strong></td><td>What's happening right now (sub-second)?</td></tr>
+            <tr><td><strong>Application Map</strong></td><td>How do my services connect, and where's the slow/failing hop?</td></tr>
+            <tr><td><strong>Failures</strong></td><td>Which requests/exceptions are failing and why?</td></tr>
+            <tr><td><strong>Performance</strong></td><td>Which operations and dependencies are slowest?</td></tr>
+            <tr><td><strong>Availability tests</strong></td><td>Is the app reachable from around the world?</td></tr>
+            <tr><td><strong>Usage</strong> (users, sessions, funnels)</td><td>How are people actually using it?</td></tr>
+            <tr><td><strong>Smart Detection</strong></td><td>Has something anomalous started happening automatically?</td></tr>
+            <tr><td><strong>Distributed tracing</strong></td><td>What was the end-to-end path of this one request?</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Instrumentation approach</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Auto-instrumentation (codeless)</strong></td><td>Enable in the App Service / Functions / AKS portal — no code change; .NET, Java, Node, Python (varies)</td></tr>
+            <tr><td><strong>SDK / OpenTelemetry (code-based)</strong></td><td>Add the Azure Monitor OpenTelemetry distro for custom events, metrics and full control</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d5)">
+        <div class="code-head"><span class="ch-tag">C#</span> connect + custom telemetry</div>
+        <pre class="code"><code><span class="cm">// Modern approach: Azure Monitor OpenTelemetry distro</span>
+builder.Services.AddOpenTelemetry().UseAzureMonitor(o =&gt;
+    o.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
+
+<span class="cm">// Custom signals</span>
+_telemetryClient.TrackEvent("OrderPlaced",
+    new Dictionary&lt;string,string&gt; { ["orderId"] = order.Id },
+    new Dictionary&lt;string,double&gt; { ["orderValue"] = order.Total });
+_telemetryClient.TrackMetric("ActiveUsers", userCount);
+try { /* ... */ }
+catch (Exception ex) { _telemetryClient.TrackException(ex); throw; }</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — connection string, not instrumentation key</p>
+        <p>Application Insights now uses a <strong>connection string</strong> (which embeds the key and the regional endpoints). The bare <strong>instrumentation key</strong> is deprecated — an answer that configures only an instrumentation key is dated. For "enable monitoring with no code change", the answer is <strong>auto-instrumentation</strong> on the App Service.</p>
+      </div>
+
+      <h3 id="insights-family">The Insights family</h3>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Insight</th><th>Monitors</th><th>Key signals</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Application Insights</strong></td><td>Applications (APM)</td><td>Requests, dependencies, exceptions, traces</td></tr>
+            <tr><td><strong>VM Insights</strong></td><td>VMs &amp; scale sets</td><td>CPU, memory, disk, network, process &amp; connection map</td></tr>
+            <tr><td><strong>Container Insights</strong></td><td>AKS &amp; Container Instances</td><td>Node/pod/container CPU &amp; memory, restarts, K8s events</td></tr>
+            <tr><td><strong>Storage Insights</strong></td><td>Storage accounts</td><td>Transactions, availability, latency, capacity (agentless)</td></tr>
+            <tr><td><strong>Network Insights</strong></td><td>Network resources</td><td>Topology, traffic, connectivity (Network Watcher, Connection Monitor)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d5)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> enable Container Insights on AKS</div>
+        <pre class="code"><code>az aks enable-addons \
+  --resource-group myRG --name myAKS \
+  --addons monitoring \
+  --workspace-resource-id "$LOG_ANALYTICS_WORKSPACE_ID"</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — pick the Insight by resource type</p>
+        <p>These are almost pure recognition questions: <strong>AKS pods</strong> → <strong>Container Insights</strong>; <strong>VM CPU/memory</strong> → <strong>VM Insights</strong>; <strong>custom app events / dependency latency</strong> → <strong>Application Insights</strong>; <strong>storage account transactions</strong> → <strong>Storage Insights</strong>; <strong>network topology/connectivity</strong> → <strong>Network Insights</strong>.</p>
+      </div>
+
+      <h3 id="github-monitoring">Monitoring in GitHub</h3>
+      <ul>
+        <li><strong>Repository Insights</strong> — Pulse (activity summary), Traffic (views/clones/referrers), Contributors, Community Standards, Dependency graph, Network.</li>
+        <li><strong>GitHub Projects Insights</strong> — build charts from project data: items by status/assignee, burn-up, velocity; historical and current.</li>
+        <li><strong>Actions usage metrics</strong> — workflow run history, job timing, minutes and storage consumption for cost/health tracking.</li>
+      </ul>
+      <div class="callout note">
+        <p class="ct-title">Creating and configuring charts</p>
+        <p>The skills measured call out "enabling insights and creating and configuring charts" — that's <strong>GitHub Projects → Insights</strong>, where you add a chart, choose the metric (e.g. items completed over time), filter, and group. Enabling the <strong>dependency graph</strong> is the prerequisite for Dependabot (see <a href="../domain-4-security/#containers">Domain 4</a>).</p>
+      </div>
+
+      <h3 id="alerts">Alerts for GitHub Actions and Azure Pipelines</h3>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Signal</th><th>Mechanism</th></tr></thead>
+          <tbody>
+            <tr><td>Azure Pipelines run failed</td><td>Notifications (Project Settings) or <strong>Service hooks → Teams/Slack</strong>, filtered to failures</td></tr>
+            <tr><td>GitHub Actions run failed</td><td><code>if: failure()</code> step posting to Teams/Slack; watch/notification settings</td></tr>
+            <tr><td>Azure resource metric crossed a threshold</td><td><strong>Azure Monitor metric alert</strong> → action group</td></tr>
+            <tr><td>A log condition occurred</td><td><strong>Azure Monitor log (scheduled query) alert</strong></td></tr>
+            <tr><td>Auto-remediation</td><td>Action group <strong>webhook</strong> → Azure DevOps REST API to <strong>trigger a pipeline</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d5)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> metric alert + action group</div>
+        <pre class="code"><code>az monitor metrics alert create \
+  --name "High CPU" --resource-group myRG \
+  --scopes "$VM_ID" \
+  --condition "avg Percentage CPU &gt; 80" \
+  --window-size 5m --evaluation-frequency 1m \
+  --action "$ACTION_GROUP_ID" \
+  --description "CPU over 80% for 5 minutes"</code></pre>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Action groups are the fan-out</p>
+        <p>An <strong>action group</strong> is a reusable set of notification and action targets — email/SMS/push, webhook, Logic App, Azure Function, ITSM, runbook. One alert points at an action group so the same response (notify + auto-remediate) is reused across many alerts. Wiring a webhook to the Azure DevOps REST API is how "an alert triggers a remediation pipeline".</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="analyze"><span class="num">5.2</span> Analyze metrics from instrumentation</h2>
+
+      <h3 id="infra-metrics">Infrastructure performance indicators</h3>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Indicator</th><th>Watch when</th><th>Usually means</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CPU %</strong></td><td>&gt; 80% sustained</td><td>Scale up/out</td></tr>
+            <tr><td><strong>Memory %</strong></td><td>&gt; 85% sustained</td><td>Leak or undersized</td></tr>
+            <tr><td><strong>Disk I/O latency</strong></td><td>&gt; 20 ms</td><td>Storage bottleneck</td></tr>
+            <tr><td><strong>Disk space</strong></td><td>&gt; 85% used</td><td>Imminent outage</td></tr>
+            <tr><td><strong>Network throughput</strong></td><td>Near NIC/bandwidth limit</td><td>Throttling / cost</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="app-metrics">Application metrics and usage</h3>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Metric</th><th>Example alert threshold</th></tr></thead>
+          <tbody>
+            <tr><td>Server response time</td><td>&gt; 2 s average</td></tr>
+            <tr><td>Failed request rate</td><td>&gt; 5% (HTTP 5xx / exceptions)</td></tr>
+            <tr><td>Request rate</td><td>Anomaly vs baseline (Smart Detection)</td></tr>
+            <tr><td>Availability</td><td>&lt; 99.9% from availability tests</td></tr>
+            <tr><td>Dependency duration/failures</td><td>Slow DB/API calls in the Application Map</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">The Four Golden Signals / RED / USE</p>
+        <p>Frameworks worth recognising: <strong>Four Golden Signals</strong> (latency, traffic, errors, saturation), <strong>RED</strong> for services (Rate, Errors, Duration), and <strong>USE</strong> for resources (Utilization, Saturation, Errors). They map cleanly onto Application Insights (RED) and VM/Container Insights (USE).</p>
+      </div>
+
+      <h3 id="tracing">Distributed tracing</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  R[Request<br/>operation_Id: abc-123] --> A[Service A<br/>span 50ms]
+  A --> B[Service B<br/>span 200ms]
+  B --> D[(Database<br/>span 120ms)]
+        </div>
+        <div class="mm-cap">One operation_Id ties every span together, so you can reconstruct the whole request across services.</div>
+      </div>
+      <ul>
+        <li>Application Insights propagates the <strong>W3C <code>traceparent</code></strong> header (and legacy <code>Request-Id</code>) so spans across services correlate automatically.</li>
+        <li>View a full request in <strong>Transaction search</strong> → <strong>end-to-end transaction details</strong> (waterfall).</li>
+        <li><strong>Sampling</strong> reduces volume/cost while <strong>preserving whole traces</strong> — <em>adaptive</em> (default), <em>fixed-rate</em>, or <em>ingestion</em>. It keeps complete transactions, not random events, so traces stay intact.</li>
+      </ul>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the Application Map is for cross-service problems</p>
+        <p>"A request touches five microservices and one is slow — find which" → <strong>distributed tracing</strong> / <strong>Application Map</strong>, correlated by <code>operation_Id</code>. "Find the slowest database call in one app" → Application Insights <strong>Performance → Dependencies</strong>. Both are Application Insights, but the map is the answer whenever the problem spans services.</p>
+      </div>
+
+      <h3 id="kql">Kusto Query Language (KQL) basics</h3>
+      <p>KQL queries Log Analytics, Application Insights, Microsoft Sentinel and Azure Data Explorer. The exam expects you to <em>read</em> and lightly <em>write</em> it — a table name, then a pipeline of operators.</p>
+      <div class="table-wrap">
+        <table class="tbl t-teal">
+          <thead><tr><th>Operator</th><th>Does</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><code>where</code></td><td>Filter rows</td><td><code>where success == false</code></td></tr>
+            <tr><td><code>project</code> / <code>project-away</code></td><td>Choose/drop columns</td><td><code>project name, duration</code></td></tr>
+            <tr><td><code>summarize</code></td><td>Aggregate, usually by a key or time bin</td><td><code>summarize count() by bin(timestamp, 1h)</code></td></tr>
+            <tr><td><code>extend</code></td><td>Add a computed column</td><td><code>extend sec = duration / 1000</code></td></tr>
+            <tr><td><code>order by</code> / <code>sort by</code></td><td>Sort</td><td><code>order by duration desc</code></td></tr>
+            <tr><td><code>take</code> / <code>top</code></td><td>Limit / top-N</td><td><code>top 10 by duration desc</code></td></tr>
+            <tr><td><code>join</code></td><td>Combine tables</td><td><code>join kind=inner (exceptions) on operation_Id</code></td></tr>
+            <tr><td><code>render</code></td><td>Visualise</td><td><code>render timechart</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d5)">
+        <div class="code-head"><span class="ch-tag">KQL</span> the queries the exam reuses</div>
+        <pre class="code"><code><span class="cm">// Failed requests over the last 24h, charted</span>
+requests
+| where timestamp &gt; ago(24h)
+| where success == false
+| summarize failures = count() by bin(timestamp, 1h), resultCode
+| render timechart
+
+<span class="cm">// Slowest operations — p95 is what SLOs care about</span>
+requests
+| where timestamp &gt; ago(1h)
+| summarize avg(duration), p95 = percentile(duration, 95), count() by name
+| order by p95 desc
+| take 20
+
+<span class="cm">// Exceptions grouped by type</span>
+exceptions
+| where timestamp &gt; ago(24h)
+| summarize count() by type
+| order by count_ desc
+
+<span class="cm">// Availability % by location</span>
+availabilityResults
+| where timestamp &gt; ago(7d)
+| summarize availability = round(100.0 * countif(success == true) / count(), 2)
+    by location, bin(timestamp, 1d)
+| render timechart</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the KQL patterns that show up</p>
+        <p>Recognise these on sight: <code>where timestamp &gt; ago(1h)</code> (time filter), <code>summarize ... by bin(timestamp, 1h)</code> (bucket by hour), <code>percentile(duration, 95)</code> (p95 latency), <code>render timechart</code> (time-series chart). "Group results by hour" is <code>bin()</code> inside <code>summarize</code>; "show as a chart" is <code>render</code>.</p>
+      </div>
+
+      <h3 id="availability-tests">Availability tests</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Type</th><th>Does</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Standard test</strong></td><td>HTTP GET from multiple regions with SSL, status-code and content checks (the current recommended test)</td></tr>
+            <tr><td><strong>URL ping test</strong></td><td>Simple reachability check (classic; being retired in favour of Standard)</td></tr>
+            <tr><td><strong>Custom TrackAvailability()</strong></td><td>Multi-step / authenticated flows run from a Function or pipeline reporting via the SDK</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Test from multiple locations</p>
+        <p>Configure at least <strong>five geographic locations</strong> so a single region's blip doesn't page you, and alert when a threshold number of locations fail. "Monitor the app's availability from around the world" → <strong>Application Insights availability (Standard) test</strong>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">Domain 5 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Alert when CPU &gt; 80% for 5 minutes</td><td>Azure Monitor <strong>metric alert</strong> → action group</td></tr>
+            <tr><td>Find every 500 in the last hour</td><td>KQL <strong>log query</strong> on <code>requests</code></td></tr>
+            <tr><td>Monitor AKS pod CPU/memory</td><td><strong>Container Insights</strong></td></tr>
+            <tr><td>Monitor VM CPU and memory</td><td><strong>VM Insights</strong></td></tr>
+            <tr><td>Track a custom business event</td><td>Application Insights <code>TrackEvent()</code></td></tr>
+            <tr><td>Find the slowest dependency in one app</td><td>App Insights <strong>Performance → Dependencies</strong></td></tr>
+            <tr><td>Trace a request across five services</td><td><strong>Distributed tracing</strong> / <strong>Application Map</strong></td></tr>
+            <tr><td>Enable monitoring with no code change</td><td><strong>Auto-instrumentation</strong> on App Service</td></tr>
+            <tr><td>Reduce telemetry cost but keep whole traces</td><td><strong>Adaptive sampling</strong></td></tr>
+            <tr><td>Monitor availability from around the world</td><td>App Insights <strong>availability (Standard) test</strong></td></tr>
+            <tr><td>Group KQL results by hour</td><td><code>summarize ... by bin(timestamp, 1h)</code></td></tr>
+            <tr><td>Show a KQL result as a time chart</td><td><code>| render timechart</code></td></tr>
+            <tr><td>Get the 95th-percentile response time</td><td><code>percentile(duration, 95)</code></td></tr>
+            <tr><td>Reuse one response across many alerts</td><td><strong>Action group</strong></td></tr>
+            <tr><td>An alert should trigger a remediation pipeline</td><td>Action group <strong>webhook → Azure DevOps REST API</strong></td></tr>
+            <tr><td>Modern agent for VM telemetry</td><td><strong>Azure Monitor Agent</strong> (MMA is retired)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../domain-4-security/"><div class="pg-dir">← Previous</div><div class="pg-title">Domain 4 · Security &amp; compliance</div></a>
+        <a class="next" href="../exam-tips/"><div class="pg-dir">Next →</div><div class="pg-title">Exam tips &amp; caveats</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

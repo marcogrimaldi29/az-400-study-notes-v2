@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.5 · Infrastructure as Code — AZ-400</title>
+  <meta name="description" content="AZ-400 3.5: configuration management technologies, IaC strategy and testing, Bicep and ARM templates, deployment modes and what-if, desired state configuration, Azure Machine Configuration, and Azure Deployment Environments for self-service.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/infrastructure-as-code/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.5 · Infrastructure as Code">
+  <meta property="og:description" content="Bicep and ARM, deployment modes and what-if, DSC and Machine Configuration, Azure Deployment Environments for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/infrastructure-as-code/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.5 · Infrastructure as Code">
+  <meta name="twitter:description" content="Bicep, ARM, deployment modes, what-if, DSC, Machine Configuration and Deployment Environments.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.5 · Infrastructure as Code","description":"Bicep and ARM, deployment modes and what-if, DSC and Machine Configuration, Azure Deployment Environments for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/infrastructure-as-code/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.5 · Infrastructure as code","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/infrastructure-as-code/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="iac">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.5 · part of 50–55%</div>
+        <h1>Design and implement infrastructure as code (IaC)</h1>
+        <p>Treating infrastructure and OS configuration as versioned, reviewed, tested code — provisioning resources with Bicep and ARM, keeping machines in their desired state, and letting developers self-serve environments from approved templates.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="cm-technologies">Configuration management technologies</h2>
+      <p>The first decision is <strong>provisioning</strong> (creating cloud resources) vs <strong>configuration</strong> (setting up the OS and apps <em>inside</em> those resources). Different tools own each layer.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Tool</th><th>Layer</th><th>Scope</th><th>Language</th><th>Model</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Bicep</strong></td><td>Provisioning</td><td>Azure</td><td>Bicep DSL</td><td>Declarative, idempotent</td></tr>
+            <tr><td><strong>ARM templates</strong></td><td>Provisioning</td><td>Azure</td><td>JSON</td><td>Declarative, idempotent</td></tr>
+            <tr><td><strong>Terraform</strong></td><td>Provisioning</td><td>Multi-cloud</td><td>HCL</td><td>Declarative; external state file</td></tr>
+            <tr><td><strong>Pulumi</strong></td><td>Provisioning</td><td>Multi-cloud</td><td>Real languages (C#, TS, Python)</td><td>Declarative</td></tr>
+            <tr><td><strong>PowerShell DSC / Machine Configuration</strong></td><td>Configuration</td><td>OS (Windows/Linux)</td><td>PowerShell DSC</td><td>Declarative, continuously enforced</td></tr>
+            <tr><td><strong>Ansible</strong></td><td>Configuration (+ some provisioning)</td><td>Multi-cloud + OS</td><td>YAML</td><td>Mostly declarative, agentless (SSH)</td></tr>
+            <tr><td><strong>Chef / Puppet</strong></td><td>Configuration</td><td>OS</td><td>Ruby / Puppet DSL</td><td>Declarative, agent-based</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — choosing the technology</p>
+        <p><strong>Azure-only resource provisioning</strong> → <strong>Bicep</strong> (preferred) or ARM. <strong>Multi-cloud provisioning</strong> → <strong>Terraform</strong>. <strong>OS / in-VM configuration</strong> → <strong>DSC / Machine Configuration</strong> or Ansible. Declarative ("describe the end state") beats imperative ("list the steps") in almost every AZ-400 answer, because declarative tooling is idempotent and self-healing.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Idempotency and drift</p>
+        <p><strong>Idempotent</strong> = applying the same definition repeatedly converges to the same state with no side effects. <strong>Configuration drift</strong> = reality diverging from the definition (someone changed a setting by hand). Declarative IaC both prevents drift (re-apply to correct it) and detects it (<code>what-if</code> for resources, DSC/Machine Configuration compliance for the OS).</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="strategy">Defining an IaC strategy</h2>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">layout</span> repository structure for IaC</div>
+        <pre class="code"><code>infrastructure/
+├── environments/
+│   ├── dev/       main.bicep  dev.bicepparam
+│   ├── staging/   main.bicep  staging.bicepparam
+│   └── prod/      main.bicep  prod.bicepparam
+├── modules/
+│   ├── network/vnet.bicep
+│   ├── compute/appservice.bicep
+│   └── data/sql.bicep
+└── tests/
+    └── validate.ps1</code></pre>
+      </div>
+      <ul>
+        <li><strong>Source-control everything</strong>; review infrastructure changes with PRs exactly like application code (branch policies from <a href="../../domain-2-source-control/#pr-workflow">Domain 2</a> apply).</li>
+        <li><strong>Externalise per-environment values</strong> into parameter files — one template, many environments. Never hardcode.</li>
+        <li><strong>Modularise</strong> reusable components; version shared modules and consume them from a registry.</li>
+        <li><strong>Automate the test-and-deploy loop</strong> — lint, validate, preview, security-scan, then deploy on approval.</li>
+      </ul>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  PR[IaC change · PR] --> V["Validate<br/>bicep build · lint (PSRule)"]
+  V --> WI["Preview<br/>az deployment what-if"]
+  WI --> SEC["Security scan<br/>PSRule · checkov · tfsec"]
+  SEC --> A{Approve}
+  A --> DEV[Deploy dev] --> IT[Integration tests]
+  IT --> STG[Deploy staging] --> SMK[Smoke tests]
+  SMK --> PRD[Deploy prod · manual approval]
+        </div>
+        <div class="mm-cap">An IaC pipeline: validate → preview → scan → approve → progressively deploy, same shape as an app pipeline.</div>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Scan IaC for misconfiguration before it ships</p>
+        <p><strong>PSRule for Azure</strong>, <strong>checkov</strong> and <strong>tfsec</strong> catch insecure defaults (public storage, open NSGs, missing encryption) at PR time. Microsoft Defender for Cloud's DevOps security also surfaces IaC findings and annotates PRs — see <a href="../../domain-4-security/#defender">Domain 4</a>. This is the "shift-left" answer for infrastructure.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="bicep">Azure Bicep</h2>
+      <p>Bicep is a transparent abstraction over ARM: it compiles (<em>transpiles</em>) to ARM JSON, so anything ARM can do, Bicep can do — with far less ceremony, no need to hand-manage <code>dependsOn</code>, and modules as a first-class feature.</p>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">main.bicep</span> parameters, resources, outputs</div>
+        <pre class="code"><code>@description('Environment name')
+@allowed(['dev', 'staging', 'prod'])
+param environment string = 'dev'
+
+param location string = resourceGroup().location
+
+@secure()
+param sqlAdminPassword string          <span class="cm">// never surfaced in logs/outputs</span>
+
+var appServicePlanName = 'asp-${environment}-${uniqueString(resourceGroup().id)}'
+
+resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: appServicePlanName
+  location: location
+  sku: {
+    name: environment == 'prod' ? 'P1v3' : 'B1'   <span class="cm">// ternary for env-specific sizing</span>
+    capacity: environment == 'prod' ? 3 : 1
+  }
+}
+
+resource web 'Microsoft.Web/sites@2023-12-01' = {
+  name: 'app-${environment}-${uniqueString(resourceGroup().id)}'
+  location: location
+  properties: {
+    serverFarmId: plan.id               <span class="cm">// implicit dependency — no dependsOn needed</span>
+    httpsOnly: true
+  }
+}
+
+output webAppUrl string = 'https://${web.properties.defaultHostName}'</code></pre>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">bicep</span> a module and its consumer</div>
+        <pre class="code"><code><span class="cm">// modules/storage.bicep</span>
+param name string
+param location string = resourceGroup().location
+param sku string = 'Standard_LRS'
+resource sa 'Microsoft.Storage/storageAccounts@2023-04-01' = {
+  name: name
+  location: location
+  sku: { name: sku }
+  kind: 'StorageV2'
+}
+output blobEndpoint string = sa.properties.primaryEndpoints.blob
+
+<span class="cm">// main.bicep — consume it (loops with @batchSize, conditions with 'if' also supported)</span>
+module storage 'modules/storage.bicep' = {
+  name: 'storageDeploy'
+  params: { name: 'st${uniqueString(resourceGroup().id)}', sku: 'Standard_GRS' }
+}
+output blobUrl string = storage.outputs.blobEndpoint</code></pre>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Bicep features worth naming</p>
+        <p><strong>Modules</strong> (reuse + implicit ordering), <strong>loops</strong> (<code>for</code>, <code>@batchSize</code> for serial deployment), <strong>conditions</strong> (<code>if</code>), <strong>existing</strong> keyword (reference resources you do not manage), <strong><code>.bicepparam</code></strong> typed parameter files, a <strong>public/private module registry</strong> (ACR-backed), and <strong>deployment stacks</strong> (manage a set of resources as one unit with deny-settings to prevent drift/deletion).</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="arm">ARM templates and deployment modes</h2>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azuredeploy.json</span> the ARM shape Bicep compiles to</div>
+        <pre class="code"><code>{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": { "webAppName": { "type": "string" } },
+  "variables": { "planName": "[concat('plan-', parameters('webAppName'))]" },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('planName')]",
+      "location": "[resourceGroup().location]",
+      "sku": { "name": "B1" }
+    }
+  ],
+  "outputs": {
+    "appUrl": { "type": "string",
+      "value": "[concat('https://', parameters('webAppName'), '.azurewebsites.net')]" }
+  }
+}</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Deployment mode</th><th>Behaviour</th><th>Risk</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Incremental</strong> (default)</td><td>Adds/updates resources in the template; <strong>leaves</strong> resources not in the template untouched</td><td><span class="pill p-green">Safe</span></td></tr>
+            <tr><td><strong>Complete</strong></td><td>Adds/updates in the template AND <strong>deletes</strong> anything in the resource group not in the template</td><td><span class="pill p-red">Can delete resources</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Complete mode deletes</p>
+        <p><strong>Complete mode removes resources that exist in the resource group but are absent from the template.</strong> Bicep and the CLI default to <strong>Incremental</strong>. Complete mode is the correct answer to "the resource group should contain <em>exactly</em> what the template declares, nothing more" — but it is a trap if the scenario has other resources sharing the group.</p>
+      </div>
+      <h3 id="what-if">Previewing with what-if</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> preview, then deploy</div>
+        <pre class="code"><code><span class="cm"># Preview the change set WITHOUT applying it</span>
+az deployment group what-if \
+  --resource-group myRG \
+  --template-file infrastructure/main.bicep \
+  --parameters infrastructure/environments/prod/prod.bicepparam
+
+<span class="cm"># Deploy (incremental by default)</span>
+az deployment group create \
+  --resource-group myRG \
+  --template-file infrastructure/main.bicep \
+  --parameters infrastructure/environments/prod/prod.bicepparam
+
+<span class="cm"># Convert an existing ARM JSON template to Bicep</span>
+az bicep decompile --file azuredeploy.json</code></pre>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> what-if gate before deploy</div>
+        <pre class="code"><code>- task: AzureCLI@2
+  displayName: What-if preview
+  inputs:
+    azureSubscription: 'MyServiceConnection'
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      az deployment group what-if -g myRG \
+        --template-file infrastructure/main.bicep \
+        --parameters infrastructure/environments/$(env)/main.bicepparam
+
+- task: AzureResourceManagerTemplateDeployment@3
+  displayName: Deploy Bicep
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'MyServiceConnection'
+    resourceGroupName: myRG
+    location: uksouth
+    csmFile: 'infrastructure/main.bicep'
+    csmParametersFile: 'infrastructure/environments/$(env)/main.bicepparam'
+    deploymentMode: 'Incremental'</code></pre>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Deployment scopes</p>
+        <p>Deployments target a scope: <strong>resource group</strong> (most common), <strong>subscription</strong> (create resource groups, policy/RBAC assignments), <strong>management group</strong> (org-wide policy), or <strong>tenant</strong>. The <code>targetScope</code> keyword in Bicep declares it.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="dsc">Desired State Configuration</h2>
+      <p>DSC keeps the <em>inside</em> of a machine (features, files, services, registry) in a declared state and continuously corrects drift. AZ-400 lists two hosting models.</p>
+
+      <h3 id="automation-dsc">Azure Automation State Configuration</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">PowerShell</span> a DSC configuration</div>
+        <pre class="code"><code>Configuration WebServerConfig {
+    Import-DscResource -ModuleName PSDesiredStateConfiguration
+
+    Node 'WebServer01' {
+        WindowsFeature IIS {
+            Ensure = 'Present'
+            Name   = 'Web-Server'
+        }
+        File WebContent {
+            Ensure          = 'Present'
+            Type            = 'Directory'
+            DestinationPath = 'C:\inetpub\wwwroot\myapp'
+            DependsOn       = '[WindowsFeature]IIS'
+        }
+        Service W3SVC {
+            Name  = 'W3SVC'
+            State = 'Running'
+        }
+    }
+}
+WebServerConfig -OutputPath ./mof     <span class="cm"># compile to a MOF document</span></code></pre>
+      </div>
+      <ol class="steps">
+        <li>Author the configuration (PowerShell) and compile it to a <strong>MOF</strong>.</li>
+        <li>Upload/import it into the <strong>Azure Automation</strong> account (the pull server).</li>
+        <li><strong>Register nodes</strong> (Azure VMs, on-prem or Arc-enabled servers) against the account.</li>
+        <li>The Local Configuration Manager <strong>pulls</strong> the config on an interval and enforces it (<code>ApplyAndAutoCorrect</code>).</li>
+        <li>Compliance is reported centrally in the portal.</li>
+      </ol>
+
+      <h3 id="machine-config">Azure Machine Configuration (formerly Guest Configuration)</h3>
+      <ul>
+        <li>Built into <strong>Azure Policy</strong> — no Automation account required.</li>
+        <li><strong>Audit</strong> mode reports compliance; <strong>DeployIfNotExists</strong> can remediate.</li>
+        <li>Works on <strong>Windows and Linux</strong>, on Azure VMs and <strong>Arc-enabled servers</strong>, via the Azure Monitor / guest configuration extension.</li>
+        <li>Uses DSC v3 under the hood; it is the <strong>modern successor</strong> to Automation State Configuration for auditing OS settings at scale.</li>
+      </ul>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Automation DSC vs Machine Configuration</p>
+        <p>"Continuously enforce a configuration with a pull server and an Automation account" → <strong>Azure Automation State Configuration</strong>. "Audit (and optionally remediate) OS settings across many VMs and Arc servers <em>through Azure Policy</em>, no Automation account" → <strong>Azure Machine Configuration</strong>. The phrase "at scale via Azure Policy" is the tell for Machine Configuration.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="deployment-environments">Azure Deployment Environments</h2>
+      <p><strong>Azure Deployment Environments (ADE)</strong> lets developers self-serve complete, pre-approved environments on demand — platform engineering curates the templates, developers press a button, and governance/cost controls are enforced automatically.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  DC["Dev Center<br/>catalogs · environment types · identity"] --> CAT["Catalog<br/>Git repo of environment definitions (IaC)"]
+  DC --> PROJ["Project<br/>maps env types → subscriptions"]
+  PROJ --> DEV["Developer<br/>portal / CLI / VS Code"]
+  DEV -->|"self-serve, from an approved definition"| ENV["Environment<br/>provisioned in the mapped subscription"]
+  ENV -.->|delete when done| GONE[Resources removed]
+        </div>
+        <div class="mm-cap">Platform team owns the Dev Center and catalog; developers get governed, disposable environments.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Component</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Dev Center</strong></td><td>Top-level container: registers catalogs, environment types and identities</td></tr>
+            <tr><td><strong>Catalog</strong></td><td>A GitHub or Azure Repos repository of <strong>environment definitions</strong> (IaC + manifest)</td></tr>
+            <tr><td><strong>Environment definition</strong></td><td>An IaC template (ARM/Bicep) plus an <code>environment.yaml</code> manifest and parameters</td></tr>
+            <tr><td><strong>Project</strong></td><td>Represents a team/product; grants developer access</td></tr>
+            <tr><td><strong>Environment type</strong></td><td>Maps a stage (Dev/Test/Prod) to a target subscription and permissions</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">environment.yaml</span> an environment definition manifest</div>
+        <pre class="code"><code>name: Web Application Environment
+version: 1.0.0
+summary: App Service + SQL Database + Key Vault
+runner: ARM
+templatePath: main.bicep
+parameters:
+  - id: appName
+    name: Application name
+    type: string
+    required: true</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — ADE vs a self-service pipeline</p>
+        <p>When the requirement is "let developers spin up on-demand environments from <strong>pre-approved templates</strong>, governed and cost-tracked, without giving them subscription access", the answer is <strong>Azure Deployment Environments</strong> — not "give them a pipeline" and not "grant Contributor". ADE is also distinct from <strong>Microsoft Dev Box</strong> (managed developer <em>workstations</em>); both hang off a Dev Center, but ADE provisions <em>infrastructure</em>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.5 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Azure-native IaC, simpler than ARM JSON</td><td><strong>Bicep</strong></td></tr>
+            <tr><td>Provision across AWS and Azure with one tool</td><td><strong>Terraform</strong></td></tr>
+            <tr><td>Configure the OS inside VMs continuously</td><td><strong>DSC</strong> / Machine Configuration (or Ansible)</td></tr>
+            <tr><td>Preview infrastructure changes before applying</td><td><code>az deployment group what-if</code></td></tr>
+            <tr><td>Template must delete resources not defined in it</td><td>ARM deployment mode <strong>Complete</strong></td></tr>
+            <tr><td>Add/update only, never delete</td><td>Deployment mode <strong>Incremental</strong> (default)</td></tr>
+            <tr><td>Convert an ARM JSON template to Bicep</td><td><code>az bicep decompile</code></td></tr>
+            <tr><td>Audit OS settings across many VMs via Azure Policy</td><td><strong>Azure Machine Configuration</strong></td></tr>
+            <tr><td>Pull-server DSC with an Automation account</td><td><strong>Azure Automation State Configuration</strong></td></tr>
+            <tr><td>Scan IaC for security misconfigurations</td><td><strong>PSRule for Azure</strong>, checkov, tfsec</td></tr>
+            <tr><td>Developers self-serve governed environments from approved templates</td><td><strong>Azure Deployment Environments</strong></td></tr>
+            <tr><td>Manage a set of resources as one unit, block deletion</td><td>Bicep <strong>deployment stacks</strong> with deny settings</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../deployments/"><div class="pg-dir">← Previous</div><div class="pg-title">3.4 · Deployments</div></a>
+        <a class="next" href="../maintain/"><div class="pg-dir">Next →</div><div class="pg-title">3.6 · Maintain pipelines</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resources &amp; Study Plan — AZ-400</title>
+  <meta name="description" content="AZ-400 resources: exam facts and prerequisites, a weighted study plan, official Microsoft learning paths and documentation, hands-on practice ideas, and command/tooling quick reference.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/resources/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Resources and Study Plan">
+  <meta property="og:description" content="Exam facts, a weighted study plan, official learning paths and documentation, and a command quick reference for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/resources/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Resources and Study Plan">
+  <meta name="twitter:description" content="Exam facts, a weighted study plan, official docs and a command quick reference.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Resources and Study Plan","description":"Exam facts, a weighted study plan, official learning paths and documentation, and a command quick reference for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/resources/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Resources","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/resources/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="resources">
+  <div class="layout" style="--accent:var(--ms-blue)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Reference</div>
+        <h1>Resources &amp; study plan</h1>
+        <p>The exam facts, a time-weighted plan, the official Microsoft materials, hands-on practice ideas, and a command quick reference to pull the five domains together.</p>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="exam-facts">Exam at a glance</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Exam code</strong></td><td>AZ-400</td></tr>
+            <tr><td><strong>Full name</strong></td><td>Designing and Implementing Microsoft DevOps Solutions</td></tr>
+            <tr><td><strong>Certification</strong></td><td>Microsoft Certified: DevOps Engineer Expert</td></tr>
+            <tr><td><strong>Prerequisite</strong></td><td>AZ-104 <em>or</em> AZ-204 (needed for the certification, not to sit the exam)</td></tr>
+            <tr><td><strong>Passing score</strong></td><td>700 / 1000</td></tr>
+            <tr><td><strong>Duration</strong></td><td>~120 minutes</td></tr>
+            <tr><td><strong>Questions</strong></td><td>~40–60: multiple choice, case studies, drag-and-drop, build-list, hotspot, yes/no</td></tr>
+            <tr><td><strong>Skills measured</strong></td><td>Effective July 27, 2026</td></tr>
+            <tr><td><strong>Renewal</strong></td><td>Annual, free online assessment on Microsoft Learn</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">The prerequisite catches people out</p>
+        <p>You can <em>take and pass</em> AZ-400 without holding AZ-104 or AZ-204, but the <strong>DevOps Engineer Expert certification is only issued once you also hold one of those associate certifications</strong>. Plan the pair.</p>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="weighting">Weighting — where to spend your time</h2>
+      <div class="card">
+        <div class="weight-list">
+          <div class="weight-row" style="--accent:var(--d3)">
+            <div class="wr-top"><span class="wr-name">3 · Build &amp; release pipelines</span><span class="wr-pct">50–55%</span></div>
+            <div class="progress"><span data-pct="52"></span></div>
+          </div>
+          <div class="weight-row" style="--accent:var(--d1)">
+            <div class="wr-top"><span class="wr-name">1 · Processes &amp; communications</span><span class="wr-pct">10–15%</span></div>
+            <div class="progress"><span data-pct="13"></span></div>
+          </div>
+          <div class="weight-row" style="--accent:var(--d2)">
+            <div class="wr-top"><span class="wr-name">2 · Source control strategy</span><span class="wr-pct">10–15%</span></div>
+            <div class="progress"><span data-pct="13"></span></div>
+          </div>
+          <div class="weight-row" style="--accent:var(--d4)">
+            <div class="wr-top"><span class="wr-name">4 · Security &amp; compliance</span><span class="wr-pct">10–15%</span></div>
+            <div class="progress"><span data-pct="13"></span></div>
+          </div>
+          <div class="weight-row" style="--accent:var(--d5)">
+            <div class="wr-top"><span class="wr-name">5 · Instrumentation strategy</span><span class="wr-pct">5–10%</span></div>
+            <div class="progress"><span data-pct="8"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="study-plan">A four-week study plan</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Week</th><th>Focus</th><th>Do</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1</strong></td><td>Foundations + Domain 3 part A</td><td>Set up a free Azure DevOps org and a GitHub repo. Read <a href="../domain-1-processes/">Domain 1</a> &amp; <a href="../domain-2-source-control/">Domain 2</a>. Build a first YAML pipeline (<a href="../domain-3-pipelines/pipelines/">3.3</a>) and package a library (<a href="../domain-3-pipelines/package-management/">3.1</a>).</td></tr>
+            <tr><td><strong>2</strong></td><td>Domain 3 part B (the bulk)</td><td>Work through <a href="../domain-3-pipelines/testing/">3.2</a>, <a href="../domain-3-pipelines/deployments/">3.4</a>, <a href="../domain-3-pipelines/infrastructure-as-code/">3.5</a>, <a href="../domain-3-pipelines/maintain/">3.6</a>. Deploy an app with slots, add an approval, deploy a Bicep template with <code>what-if</code>.</td></tr>
+            <tr><td><strong>3</strong></td><td>Security &amp; instrumentation</td><td>Read <a href="../domain-4-security/">Domain 4</a> &amp; <a href="../domain-5-instrumentation/">Domain 5</a>. Configure OIDC to Azure, enable CodeQL and Dependabot, wire Application Insights and write a few KQL queries.</td></tr>
+            <tr><td><strong>4</strong></td><td>Consolidate &amp; test</td><td>Drill the <a href="../exam-tips/">Exam Tips</a>. Take the official practice assessment, revisit weak domains, redo the rapid-recap tables until automatic.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Hands-on beats reading</p>
+        <p>AZ-400 rewards people who have actually built pipelines. A <strong>free Azure DevOps organization</strong> (5 users, free Microsoft-hosted minutes) and a <strong>public GitHub repo</strong> (free Actions minutes) cost nothing. Building even a small CI/CD flow end-to-end cements more than any amount of reading.</p>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="official">Official Microsoft resources</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Resource</th><th>Link</th></tr></thead>
+          <tbody>
+            <tr><td>Exam page</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/" target="_blank" rel="noopener">AZ-400 exam</a></td></tr>
+            <tr><td>Study guide (skills measured)</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400" target="_blank" rel="noopener">Official study guide</a></td></tr>
+            <tr><td>Certification</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/devops-engineer/" target="_blank" rel="noopener">DevOps Engineer Expert</a></td></tr>
+            <tr><td>Free practice assessment</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/practice/assessment" target="_blank" rel="noopener">Practice questions</a></td></tr>
+            <tr><td>Learning paths</td><td><a href="https://learn.microsoft.com/en-us/training/courses/az-400t00" target="_blank" rel="noopener">Course AZ-400T00</a></td></tr>
+            <tr><td>Azure DevOps docs</td><td><a href="https://learn.microsoft.com/en-us/azure/devops/" target="_blank" rel="noopener">learn.microsoft.com/azure/devops</a></td></tr>
+            <tr><td>GitHub Actions docs</td><td><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">docs.github.com/actions</a></td></tr>
+            <tr><td>Bicep docs</td><td><a href="https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/" target="_blank" rel="noopener">Bicep documentation</a></td></tr>
+            <tr><td>Azure Monitor docs</td><td><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" target="_blank" rel="noopener">Azure Monitor documentation</a></td></tr>
+            <tr><td>DevOps resource center</td><td><a href="https://learn.microsoft.com/en-us/devops/" target="_blank" rel="noopener">learn.microsoft.com/devops</a></td></tr>
+            <tr><td>Exam sandbox</td><td><a href="https://aka.ms/examdemo" target="_blank" rel="noopener">Try the exam UI</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="quick-reference">Command &amp; tooling quick reference</h2>
+
+      <h3 id="git-ref">Git recovery &amp; history</h3>
+      <div class="code-block" style="--accent:var(--ms-blue)">
+        <div class="code-head"><span class="ch-tag">git</span> the ones that appear in questions</div>
+        <pre class="code"><code>git revert &lt;sha&gt;                 <span class="cm"># safe undo for pushed/shared commits</span>
+git reset --soft|--mixed|--hard  <span class="cm"># local undo (rewrites history)</span>
+git reflog                        <span class="cm"># find lost commits/branches (local, ~90 days)</span>
+git cherry-pick &lt;sha&gt;             <span class="cm"># port one commit forward (release fixes)</span>
+git lfs track "*.psd"             <span class="cm"># large files → LFS (commit .gitattributes!)</span>
+git filter-repo --path secret --invert-paths   <span class="cm"># purge from all history</span>
+scalar clone &lt;url&gt;                <span class="cm"># fast clone of a huge repo</span></code></pre>
+      </div>
+
+      <h3 id="az-ref">Azure CLI — IaC &amp; deployments</h3>
+      <div class="code-block" style="--accent:var(--ms-blue)">
+        <div class="code-head"><span class="ch-tag">azure cli</span></div>
+        <pre class="code"><code>az deployment group what-if -g RG --template-file main.bicep   <span class="cm"># preview</span>
+az deployment group create  -g RG --template-file main.bicep   <span class="cm"># incremental</span>
+az bicep decompile --file template.json                        <span class="cm"># ARM → Bicep</span>
+az webapp deployment slot swap -g RG -n app --slot staging     <span class="cm"># blue-green</span>
+az pipelines runs update --id $(Build.BuildId) --retention-lease-days 365
+az artifacts universal publish --feed F --name pkg --version 1.0.0 --path .
+az monitor metrics alert create --name CPU --condition "avg Percentage CPU > 80" ...</code></pre>
+      </div>
+
+      <h3 id="kql-ref">KQL — the patterns to know</h3>
+      <div class="code-block" style="--accent:var(--ms-blue)">
+        <div class="code-head"><span class="ch-tag">KQL</span></div>
+        <pre class="code"><code>requests
+| where timestamp &gt; ago(1h)                    <span class="cm">// time filter</span>
+| where success == false                       <span class="cm">// filter</span>
+| summarize count(), p95 = percentile(duration, 95) by bin(timestamp, 1h)
+| order by p95 desc
+| render timechart                             <span class="cm">// visualise</span></code></pre>
+      </div>
+
+      <h3 id="platform-ref">Platform equivalents</h3>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Need</th><th>Azure Pipelines</th><th>GitHub Actions</th></tr></thead>
+          <tbody>
+            <tr><td>Publish results on failure</td><td><code>condition: succeededOrFailed()</code></td><td><code>if: always()</code></td></tr>
+            <tr><td>Job ordering</td><td><code>dependsOn</code></td><td><code>needs</code></td></tr>
+            <tr><td>Matrix</td><td><code>strategy: matrix</code></td><td><code>strategy: matrix</code> (+ <code>fail-fast</code>)</td></tr>
+            <tr><td>Manual with inputs</td><td><code>parameters</code></td><td><code>workflow_dispatch</code></td></tr>
+            <tr><td>Reuse</td><td>Templates / <code>extends</code></td><td>Reusable workflows / composite actions</td></tr>
+            <tr><td>Secretless Azure auth</td><td>WIF service connection</td><td>OIDC + <code>id-token: write</code></td></tr>
+            <tr><td>Cancel superseded runs</td><td><code>pr: autoCancel</code></td><td><code>concurrency: cancel-in-progress</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout note">
+        <p class="ct-title">More study notes</p>
+        <p>This is the rebuilt <strong>v2</strong> of the AZ-400 notes. Find the wider collection of certification study notes on the author's <a href="https://marcogrimaldi29.com/study-notes/" target="_blank" rel="noopener">study-notes hub</a>, including the <a href="https://marcogrimaldi29.com/ms-102-study-notes/" target="_blank" rel="noopener">MS-102 notes</a> that share this design.</p>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../exam-tips/"><div class="pg-dir">← Previous</div><div class="pg-title">Exam tips &amp; caveats</div></a>
+        <a class="next" href="../"><div class="pg-dir">Back to →</div><div class="pg-title">Home &amp; overview</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

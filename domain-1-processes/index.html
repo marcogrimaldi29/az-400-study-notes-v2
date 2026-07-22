@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain 1 · Processes &amp; Communications — AZ-400</title>
+  <meta name="description" content="AZ-400 Domain 1 study notes: traceability and flow of work, GitHub Flow, Azure Boards and GitHub integration, DORA and flow metrics, dashboards and Analytics, wikis with Mermaid, release notes, webhooks and Teams integration.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-1-processes/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Domain 1 · Processes and Communications">
+  <meta property="og:description" content="Traceability and flow of work, DevOps metrics and dashboards, wikis, release documentation, webhooks and Teams integration.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-1-processes/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Domain 1 · Processes and Communications">
+  <meta name="twitter:description" content="Traceability, DevOps metrics, dashboards, wikis, webhooks and Teams integration for AZ-400.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Domain 1 · Processes and Communications","description":"Traceability and flow of work, DevOps metrics and dashboards, wikis, release documentation, webhooks and Teams integration.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-1-processes/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 1 · Processes","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-1-processes/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="processes">
+  <div class="layout" style="--accent:var(--d1)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 1 · 10–15%</div>
+        <h1>Design and implement processes and communications</h1>
+        <p>Making work visible and traceable from idea to production, measuring the flow of delivery, and wiring the tools together so that humans find out what they need to know without drowning in noise.</p>
+      </div>
+
+      <div class="card">
+        <strong>Three objectives:</strong>
+        <ul style="margin-bottom:0">
+          <li><a href="#traceability">Traceability &amp; flow of work</a> — GitHub Flow, feedback cycles, work tracking, end-to-end traceability</li>
+          <li><a href="#metrics">Metrics &amp; queries for DevOps</a> — DORA, flow metrics, dashboards, Analytics, per-discipline metrics</li>
+          <li><a href="#collaboration">Collaboration &amp; communication</a> — wikis, Mermaid, release notes, webhooks, Boards↔GitHub, Teams</li>
+        </ul>
+        <p style="margin:10px 0 0">This domain is <strong>tool-agnostic in principle but tool-specific in the questions</strong>. Expect to be asked whether a capability belongs to Azure Boards, GitHub Projects, or both.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="traceability"><span class="num">1.1</span> Traceability &amp; flow of work</h2>
+
+      <h3 id="github-flow">GitHub Flow and the other flow models</h3>
+      <p><strong>GitHub Flow</strong> is a lightweight, branch-based workflow for teams that deploy continuously. There is exactly <strong>one long-lived branch</strong> (<code>main</code>), which is always deployable.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  A[Create a branch<br/>from main] --> B[Add commits]
+  B --> C[Open a pull request]
+  C --> D[Review &amp; discuss<br/>+ automated checks]
+  D --> E[Deploy from the branch<br/>to validate]
+  E --> F[Merge to main]
+  F --> G[Delete the branch]
+  D -->|changes requested| B
+        </div>
+        <div class="mm-cap">GitHub Flow: branch → commit → PR → review → deploy → merge. Main is always releasable.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Model</th><th>Long-lived branches</th><th>Deploy model</th><th>Fits</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GitHub Flow</strong></td><td><code>main</code> only</td><td>Deploy from the branch, then merge</td><td>Web apps, SaaS, continuous delivery</td></tr>
+            <tr><td><strong>Trunk-based</strong></td><td><code>main</code> only</td><td>Deploy from <code>main</code>; feature flags hide unfinished work</td><td>High-maturity CD teams</td></tr>
+            <tr><td><strong>Git Flow</strong></td><td><code>main</code>, <code>develop</code> (+ <code>release/</code>, <code>hotfix/</code>, <code>feature/</code>)</td><td>Scheduled releases cut from <code>develop</code></td><td>Versioned/boxed software</td></tr>
+            <tr><td><strong>Release Flow</strong> (Microsoft)</td><td><code>main</code> + <code>release/*</code></td><td>Branch per release, cherry-pick fixes forward</td><td>Multiple supported versions in production</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — GitHub Flow vs Git Flow</p>
+        <p>The single most reliable discriminator is <strong>the number of long-lived branches</strong>. GitHub Flow has one (<code>main</code>); Git Flow has at least two (<code>main</code> + <code>develop</code>). If the scenario says "release regularly / continuously deploy / keep it simple" → <strong>GitHub Flow</strong>. If it says "support multiple released versions / scheduled releases / QA hardening period" → <strong>Git Flow</strong> or <strong>release branching</strong>.</p>
+      </div>
+
+      <h3 id="feedback">Feedback cycles</h3>
+      <p>A "feedback cycle" is any loop that gets information back to the person who can act on it — the shorter the loop, the cheaper the fix.</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Mechanism</th><th>Purpose</th><th>Lives in</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GitHub Issues</strong></td><td>Bugs, features and tasks tied directly to code; labels, milestones, assignees</td><td>GitHub</td></tr>
+            <tr><td><strong>GitHub Discussions</strong></td><td>Open-ended Q&amp;A and announcements that are <em>not</em> actionable work items</td><td>GitHub</td></tr>
+            <tr><td><strong>PR reviews &amp; required reviewers</strong></td><td>Inline code feedback as a hard gate before merge</td><td>Both</td></tr>
+            <tr><td><strong>CODEOWNERS</strong></td><td>Auto-request the right reviewers based on the paths a PR touches</td><td>Both</td></tr>
+            <tr><td><strong>Status checks</strong></td><td>CI results surfaced on the PR itself</td><td>Both</td></tr>
+            <tr><td><strong>Notifications / subscriptions</strong></td><td>Route events to people and channels; tune to avoid alert fatigue</td><td>Both</td></tr>
+            <tr><td><strong>Azure Boards</strong></td><td>Planning-level feedback: epics, stories, sprints, boards</td><td>Azure DevOps</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Issues vs Discussions</p>
+        <p>An <strong>issue</strong> represents work that someone will eventually close by doing something. A <strong>discussion</strong> is a conversation with no defined completion. If a question asks where to put "community questions and feature brainstorming without cluttering the backlog", the answer is <strong>Discussions</strong>.</p>
+      </div>
+
+      <h3 id="work-tracking">Integration for tracking work</h3>
+
+      <h4>Azure Boards work item hierarchy</h4>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Level</th><th>Agile process</th><th>Scrum process</th><th>Basic process</th></tr></thead>
+          <tbody>
+            <tr><td>Portfolio (top)</td><td>Epic</td><td>Epic</td><td>Epic</td></tr>
+            <tr><td>Portfolio</td><td>Feature</td><td>Feature</td><td>Issue</td></tr>
+            <tr><td>Requirement</td><td>User Story</td><td>Product Backlog Item (PBI)</td><td>Issue</td></tr>
+            <tr><td>Task</td><td>Task</td><td>Task</td><td>Task</td></tr>
+            <tr><td>Defect</td><td>Bug</td><td>Bug</td><td>Issue</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Azure DevOps ships four inherited process templates: <strong>Basic</strong> (default, simplest), <strong>Agile</strong>, <strong>Scrum</strong> and <strong>CMMI</strong> (adds formal change requests and risks). You customise by creating an <strong>inherited process</strong> — you cannot edit the system processes directly.</p>
+
+      <h4>Linking commits and PRs to work items</h4>
+      <p>The <code>AB#</code> syntax is the glue between GitHub and Azure Boards, and it is heavily tested.</p>
+      <div class="code-block" style="--accent:var(--d1)">
+        <div class="code-head"><span class="ch-tag">git</span> commit message / PR title / PR description</div>
+        <pre class="code"><code><span class="cm"># Link only (no state change)</span>
+git commit -m "Refactor the payment gateway AB#1234"
+
+<span class="cm"># Link AND transition the work item to its "completed" state on merge</span>
+git commit -m "Fix null reference on checkout fixes AB#5678"
+git commit -m "Closes AB#199, implements AB#204"</code></pre>
+      </div>
+      <ul>
+        <li>Transition keywords: <code>fix</code>, <code>fixes</code>, <code>fixed</code>, <code>close</code>, <code>closes</code>, <code>closed</code>, <code>resolve</code>, <code>resolves</code>, <code>resolved</code> — used <em>immediately before</em> the <code>AB#ID</code>.</li>
+        <li>Inside Azure Repos the same idea uses a plain <code>#ID</code> mention; <code>AB#</code> exists because GitHub already uses <code>#</code> for its own issues.</li>
+      </ul>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — <code>AB#</code> vs <code>#</code></p>
+        <p>From a <strong>GitHub</strong> commit/PR to an <strong>Azure Boards</strong> work item → <code>AB#1234</code>. From within <strong>Azure Repos</strong> to a work item → <code>#1234</code>. A GitHub <code>#1234</code> refers to a GitHub <em>issue</em>, not a work item. Getting this backwards is a classic distractor.</p>
+      </div>
+
+      <h4>Azure Boards ↔ GitHub connection</h4>
+      <ol class="steps">
+        <li>In Azure DevOps: <strong>Project Settings → GitHub connections → Connect your GitHub account</strong>.</li>
+        <li>Authenticate — the <strong>Azure Boards GitHub App</strong> is the recommended method (scoped permissions, no personal token). OAuth and a PAT are the fallbacks.</li>
+        <li>Select the repositories to connect. One GitHub repo can only be connected to <strong>one</strong> Azure DevOps project at a time.</li>
+        <li>Use <code>AB#ID</code> in commits, PR titles/descriptions and branch names to create links automatically.</li>
+      </ol>
+      <p>Once connected you get: work-item links visible from the <strong>Development</strong> section of the work item, GitHub PR status shown on the Kanban card, and automatic state transitions on merge.</p>
+
+      <h4>GitHub Projects</h4>
+      <ul>
+        <li><strong>Projects</strong> (the current version) is a flexible, spreadsheet-plus-board planning surface with <strong>table, board and roadmap views</strong>, custom fields (single-select, number, date, iteration), grouping, filtering and slicing.</li>
+        <li>Items are issues, pull requests, or free-form <strong>draft issues</strong> that exist only in the project.</li>
+        <li><strong>Built-in workflows</strong> automate transitions — e.g. "when an item is closed, set Status to Done"; deeper automation uses the GraphQL API or GitHub Actions.</li>
+        <li><strong>Insights</strong> generates charts directly from project data (current and historical).</li>
+      </ul>
+      <div class="callout note">
+        <p class="ct-title">Boards or Projects?</p>
+        <p>Choose <strong>Azure Boards</strong> when you need a formal process template, portfolio-level rollup across many teams, rich query language (WIQL), Analytics/OData reporting or Test Plans linkage. Choose <strong>GitHub Projects</strong> when the work is code-centric, the team already lives in GitHub, and lightweight planning next to the repo is enough.</p>
+      </div>
+
+      <h3 id="traceability-chain">Source, bug and quality traceability</h3>
+      <p>End-to-end traceability means you can start from any artefact and reach every other one:</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  W[Work item<br/>requirement / bug] --> B[Branch]
+  B --> C[Commit]
+  C --> P[Pull request]
+  P --> R[Build run]
+  R --> T[Test results<br/>+ coverage]
+  T --> D[Deployment<br/>to environment]
+  D -.-> W
+        </div>
+        <div class="mm-cap">The traceability chain — each hop is a link you must configure, not something you get for free.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Type</th><th>How you implement it</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Source traceability</strong></td><td>Link commits/PRs to work items (<code>AB#</code>); enforce with the branch policy <em>"Check for linked work items"</em></td></tr>
+            <tr><td><strong>Bug traceability</strong></td><td>Create bugs directly from failing test results; link the bug to the failing build and the fixing PR</td></tr>
+            <tr><td><strong>Quality traceability</strong></td><td>Publish test results and code coverage from the pipeline; gate merges on build validation and coverage thresholds</td></tr>
+            <tr><td><strong>Release traceability</strong></td><td>Deployment records per environment; auto-generated release notes listing the work items and commits in each release</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — enforcing traceability</p>
+        <p>If a question asks how to <em>guarantee</em> that every change is tied to a requirement, the answer is a <strong>branch policy</strong> (<em>Check for linked work items</em>) in Azure Repos — not a convention, not documentation. Policies are the enforcement mechanism; <code>AB#</code> is just the syntax.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="metrics"><span class="num">1.2</span> Metrics &amp; queries for DevOps</h2>
+
+      <h3 id="dora">DORA metrics — the four keys</h3>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Metric</th><th>Measures</th><th>Elite performance</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Deployment frequency</strong></td><td>How often you successfully release to production</td><td>On demand / multiple per day</td><td><span class="pill p-blue">Throughput</span></td></tr>
+            <tr><td><strong>Lead time for changes</strong></td><td>Commit → running in production</td><td>Less than one day</td><td><span class="pill p-blue">Throughput</span></td></tr>
+            <tr><td><strong>Change failure rate</strong></td><td>% of deployments causing a degradation needing remediation</td><td>0–15%</td><td><span class="pill p-red">Stability</span></td></tr>
+            <tr><td><strong>Time to restore service</strong> (MTTR)</td><td>Incident start → service restored</td><td>Less than one hour</td><td><span class="pill p-red">Stability</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — throughput vs stability</p>
+        <p>Two DORA metrics measure <strong>speed</strong> (deployment frequency, lead time) and two measure <strong>stability</strong> (change failure rate, time to restore). The research finding the exam leans on: high performers improve <em>both</em> together — speed and safety are not a trade-off. If a scenario says "we deploy faster but break more", the fix is better automated testing and smaller batches, not slowing down.</p>
+      </div>
+
+      <h3 id="flow-metrics">Flow metrics — cycle time vs lead time</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  A[Request created<br/>New] --> B[Work started<br/>Active]
+  B --> C[Work done<br/>Closed]
+  A -. lead time .-> C
+  B -. cycle time .-> C
+        </div>
+        <div class="mm-cap">Lead time spans the whole wait; cycle time only spans active work. Lead time ≥ cycle time, always.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Metric</th><th>Definition</th><th>Improve it by</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Lead time</strong></td><td>Created → closed (includes backlog waiting time)</td><td>Reducing queue depth; prioritising ruthlessly</td></tr>
+            <tr><td><strong>Cycle time</strong></td><td>Started (first active state) → closed</td><td>Reducing handoffs, batch size and review latency</td></tr>
+            <tr><td><strong>Throughput / velocity</strong></td><td>Items (or points) completed per time period</td><td>Removing blockers; stable team capacity</td></tr>
+            <tr><td><strong>Work in progress (WIP)</strong></td><td>Items currently active</td><td>Enforcing WIP limits on board columns</td></tr>
+            <tr><td><strong>Flow efficiency</strong></td><td>Active time ÷ total elapsed time</td><td>Eliminating wait states between columns</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Little's Law</p>
+        <p><strong>Cycle time = WIP ÷ throughput.</strong> This is why capping WIP is the fastest lever on delivery speed: with throughput roughly constant, halving work in progress halves cycle time. Expect a scenario phrased as "items sit in progress for weeks" — the answer is <strong>WIP limits</strong>, not more people.</p>
+      </div>
+
+      <h3 id="dashboards">Dashboards, widgets and Analytics</h3>
+      <p>Azure DevOps reporting is built on the <strong>Analytics service</strong>, a read-optimised store fed from work-tracking and pipeline data. It is exposed three ways:</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Surface</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Dashboard widgets</strong></td><td>At-a-glance team metrics; configured in the UI, no query needed</td></tr>
+            <tr><td><strong>Analytics views</strong></td><td>A curated, filtered dataset published for Power BI consumption</td></tr>
+            <tr><td><strong>OData queries</strong></td><td>Ad-hoc/custom reporting against the Analytics endpoint (<code>analytics.dev.azure.com</code>)</td></tr>
+            <tr><td><strong>WIQL</strong> (Work Item Query Language)</td><td>Querying <em>current</em> work item state — flat lists, tree and direct-links queries</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — WIQL vs Analytics/OData</p>
+        <p><strong>WIQL</strong> answers "what does the backlog look like <em>right now</em>". <strong>Analytics/OData</strong> answers "how did this change <em>over time</em>" — trends, historical snapshots, burndown, cumulative flow. Any question containing "trend", "over the last N sprints", or "historical" points to <strong>Analytics</strong>, not a work item query.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Widget</th><th>Answers</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Velocity</strong></td><td>How much did we complete per sprint (planned vs actual)?</td></tr>
+            <tr><td><strong>Burndown / Burnup</strong></td><td>Are we on track to finish the sprint or release?</td></tr>
+            <tr><td><strong>Cumulative Flow Diagram (CFD)</strong></td><td>Where is work piling up? (band widening = bottleneck)</td></tr>
+            <tr><td><strong>Lead time / Cycle time</strong></td><td>How long does delivery take, and how variable is it?</td></tr>
+            <tr><td><strong>Test results trend</strong></td><td>Is quality improving or decaying?</td></tr>
+            <tr><td><strong>Code coverage</strong></td><td>Is test coverage trending in the right direction?</td></tr>
+            <tr><td><strong>Deployment status / Release pipeline overview</strong></td><td>What is deployed where, right now?</td></tr>
+            <tr><td><strong>Pipeline duration &amp; pass rate</strong></td><td>Is CI getting slower or flakier?</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Reading a Cumulative Flow Diagram</p>
+        <p>Each coloured band is a board column. A band that <strong>widens over time</strong> is accumulating WIP — that column is the bottleneck. The <strong>vertical distance</strong> between the top and bottom of the bands at a point in time is WIP; the <strong>horizontal distance</strong> between the same two lines is approximate cycle time.</p>
+      </div>
+
+      <h3 id="metrics-by-discipline">Metrics by discipline</h3>
+      <p>The skills measured list metrics for seven areas explicitly. Know a couple of representative metrics for each.</p>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Area</th><th>Representative metrics</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Project planning</strong></td><td>Velocity, sprint burndown, epic/feature progress, WIP, planned vs completed</td><td>Azure Boards Analytics</td></tr>
+            <tr><td><strong>Development</strong></td><td>PR turnaround time, PR size, review depth, code churn, active branch count</td><td>Repos / GitHub Insights</td></tr>
+            <tr><td><strong>Testing</strong></td><td>Pass rate, flaky test rate, code coverage (line/branch), test duration, MTTD</td><td>Pipelines / Test Plans</td></tr>
+            <tr><td><strong>Security</strong></td><td>Open vulnerabilities by severity, mean time to remediate, secret-scanning alerts, Dependabot alert age</td><td>GHAS / Defender for Cloud</td></tr>
+            <tr><td><strong>Delivery</strong></td><td>Deployment frequency, deployment success rate, lead time, rollback rate</td><td>Pipelines / Environments</td></tr>
+            <tr><td><strong>Operations</strong></td><td>MTTR, availability/uptime, incident count by severity, change failure rate, error budget burn</td><td>Azure Monitor</td></tr>
+            <tr><td><strong>Flow of work</strong></td><td>Cycle time, lead time, throughput, flow efficiency</td><td>Azure Boards Analytics</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="collaboration"><span class="num">1.3</span> Collaboration &amp; communication</h2>
+
+      <h3 id="wikis">Wikis and process diagrams</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Project wiki</th><th>Code wiki (publish as code)</th></tr></thead>
+          <tbody>
+            <tr><td>Backing store</td><td>A dedicated Git repo created for you (hidden from Repos)</td><td>A folder in an <strong>existing</strong> repo you choose</td></tr>
+            <tr><td>Editing</td><td>In the wiki UI, or by cloning the repo</td><td>Normal code workflow — branch, PR, review</td></tr>
+            <tr><td>Versioning</td><td>Single version</td><td><strong>Multiple versions</strong> — one per branch/tag</td></tr>
+            <tr><td>Best for</td><td>Team notes, onboarding, meeting records</td><td>Docs that must ship and be reviewed with the code</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — which wiki?</p>
+        <p>If the requirement includes <strong>pull-request review of documentation</strong>, <strong>versioned docs per release branch</strong>, or "docs live with the code", the answer is <strong>publish code as wiki</strong>. Only one project wiki can exist per project; you can publish many code wikis.</p>
+      </div>
+
+      <h4>Mermaid in wikis — the syntax differs by platform</h4>
+      <p>Both platforms render Mermaid, but <strong>Azure DevOps wikis do not use fenced code blocks</strong> — they use a colon-delimited container. This distinction is directly examinable.</p>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d1)">
+          <div class="code-head"><span class="ch-tag">Azure DevOps</span> wiki page</div>
+          <pre class="code"><code>::: mermaid
+graph TD
+    A[Developer] --&gt; B[Push code]
+    B --&gt; C{PR review}
+    C --&gt;|Approved| D[Merge to main]
+    C --&gt;|Changes| A
+:::</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d1)">
+          <div class="code-head"><span class="ch-tag">GitHub</span> Markdown / issue / PR</div>
+          <pre class="code"><code>```mermaid
+graph TD
+    A[Developer] --&gt; B[Push code]
+    B --&gt; C{PR review}
+    C --&gt;|Approved| D[Merge to main]
+    C --&gt;|Changes| A
+```</code></pre>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Diagram</th><th>Opening keyword</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td>Flowchart</td><td><code>graph TD</code> / <code>flowchart LR</code></td><td>Process and decision flows</td></tr>
+            <tr><td>Sequence</td><td><code>sequenceDiagram</code></td><td>Service/API interactions over time</td></tr>
+            <tr><td>Gantt</td><td><code>gantt</code></td><td>Release timelines and schedules</td></tr>
+            <tr><td>Class</td><td><code>classDiagram</code></td><td>Domain/system design</td></tr>
+            <tr><td>State</td><td><code>stateDiagram-v2</code></td><td>Work item or entity state machines</td></tr>
+            <tr><td>User journey</td><td><code>journey</code></td><td>Experience mapping</td></tr>
+            <tr><td>Pie</td><td><code>pie</code></td><td>Simple proportional breakdowns</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Other wiki markup worth knowing</p>
+        <p>Azure DevOps wikis also support <code>[[_TOC_]]</code> (auto table of contents), <code>::: mermaid</code>, work item mentions with <code>#ID</code>, <code>@</code> person mentions, and <code>:::</code> query-results embedding. GitHub Markdown adds task lists, footnotes, alerts (<code>&gt; [!NOTE]</code>) and native Mermaid/GeoJSON rendering.</p>
+      </div>
+
+      <h3 id="release-docs">Release documentation</h3>
+      <h4>Auto-generated release notes</h4>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d1)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> release with generated notes</div>
+          <pre class="code"><code>permissions:
+  contents: write
+
+steps:
+  - uses: actions/checkout@v4
+    with: { fetch-depth: 0 }
+
+  - name: Create release
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      gh release create "${{ github.ref_name }}" \
+        --generate-notes \
+        --title "Release ${{ github.ref_name }}"</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d1)">
+          <div class="code-head"><span class="ch-tag">GitHub</span> .github/release.yml — categorise notes</div>
+          <pre class="code"><code>changelog:
+  exclude:
+    labels: [ignore-for-release]
+  categories:
+    - title: ⚠️ Breaking changes
+      labels: [breaking-change]
+    - title: ✨ Features
+      labels: [enhancement, feature]
+    - title: 🐛 Fixes
+      labels: [bug]
+    - title: Other changes
+      labels: ["*"]</code></pre>
+        </div>
+      </div>
+      <ul>
+        <li><strong>GitHub</strong>: <em>Generate release notes</em> builds the changelog from merged PR titles and authors since the previous tag; <code>.github/release.yml</code> controls grouping and exclusions.</li>
+        <li><strong>Azure DevOps</strong>: query the build's associated <strong>work items and commits</strong> via the REST API (<code>build/builds/{id}/workitems</code> and <code>/changes</code>), or use a marketplace release-notes task; a build's associated items are computed from the previous successful build of the same pipeline.</li>
+      </ul>
+
+      <h4>API documentation</h4>
+      <ul>
+        <li><strong>OpenAPI/Swagger</strong> specs generated from code annotations (Swashbuckle for .NET, springdoc for Java) and published as a pipeline artifact.</li>
+        <li><strong>Azure API Management</strong> imports the OpenAPI spec and publishes a developer portal — automate the import as a release step so docs never drift from the deployed API.</li>
+        <li><strong>DocFX</strong> generates a documentation site from .NET XML comments plus Markdown; publish it to GitHub Pages or Azure Static Web Apps from the pipeline.</li>
+      </ul>
+
+      <h3 id="git-history-docs">Automating documentation from Git history</h3>
+      <p>Automated changelogs depend on <strong>machine-readable commit messages</strong>. The <strong>Conventional Commits</strong> convention is the standard the tooling assumes.</p>
+      <div class="code-block" style="--accent:var(--d1)">
+        <div class="code-head"><span class="ch-tag">spec</span> Conventional Commits</div>
+        <pre class="code"><code>&lt;type&gt;[optional scope][!]: &lt;description&gt;
+
+[optional body]
+
+[optional footer(s)]   <span class="cm"># e.g. BREAKING CHANGE: &lt;what changed&gt;</span>
+
+<span class="cm"># Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert</span>
+
+<span class="cm"># Examples</span>
+feat(auth): add SSO via Entra ID          <span class="cm">→ MINOR version bump</span>
+fix(api): handle null order id             <span class="cm">→ PATCH version bump</span>
+feat(api)!: drop support for v1 endpoints  <span class="cm">→ MAJOR version bump</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — commit type drives the version bump</p>
+        <p>With <code>semantic-release</code> or <code>standard-version</code>: <code>fix:</code> → <strong>patch</strong>, <code>feat:</code> → <strong>minor</strong>, and a <code>!</code> after the type/scope <em>or</em> a <code>BREAKING CHANGE:</code> footer → <strong>major</strong>. This is the link between Domain 1 (documentation from history) and Domain 3 (SemVer strategy).</p>
+      </div>
+      <div class="code-block" style="--accent:var(--d1)">
+        <div class="code-head"><span class="ch-tag">bash</span> changelog straight from git log</div>
+        <pre class="code"><code><span class="cm"># All commits since the last tag, as a markdown list</span>
+git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s (%h)"
+
+<span class="cm"># Tools that do this properly:</span>
+<span class="cm">#   semantic-release  — full release automation (version, tag, notes, publish)</span>
+<span class="cm">#   standard-version  — local versioning + CHANGELOG.md</span>
+<span class="cm">#   git-cliff         — highly configurable changelog generator (Rust)</span>
+<span class="cm">#   GitHub native     — "Generate release notes" from PR titles</span></code></pre>
+      </div>
+
+      <h3 id="webhooks">Webhooks and service hooks</h3>
+      <p>A webhook is an <strong>outbound HTTP POST</strong> that the platform sends to your endpoint when an event occurs — push-based, so no polling.</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>GitHub webhooks</th><th>Azure DevOps service hooks</th></tr></thead>
+          <tbody>
+            <tr><td>Configured at</td><td>Repository, organization or GitHub App level</td><td><strong>Project Settings → Service hooks</strong></td></tr>
+            <tr><td>Common events</td><td><code>push</code>, <code>pull_request</code>, <code>issues</code>, <code>workflow_run</code>, <code>release</code>, <code>check_run</code></td><td>Build completed, release created/completed, PR created/updated, work item created/updated, code pushed</td></tr>
+            <tr><td>Payload</td><td>JSON (<code>application/json</code> or form-encoded)</td><td>JSON, with resource-version selection</td></tr>
+            <tr><td>Security</td><td><strong>Secret</strong> → HMAC signature in <code>X-Hub-Signature-256</code>; verify before trusting</td><td>Basic auth headers / HTTPS endpoint; restrict by filters</td></tr>
+            <tr><td>Built-in targets</td><td>— (raw HTTP only; Apps for richer integrations)</td><td>Teams, Slack, Jenkins, Trello, Azure Service Bus, generic webhook, and more</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — always verify the signature</p>
+        <p>A webhook endpoint is a public URL that anyone can POST to. The correct answer to "how do you ensure the payload really came from GitHub" is <strong>configure a secret and validate the <code>X-Hub-Signature-256</code> HMAC-SHA256 digest</strong> — not IP allow-listing alone, and definitely not "use HTTPS".</p>
+      </div>
+
+      <h3 id="teams">Integration with Microsoft Teams</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Integration</th><th>How</th><th>Typical subscriptions</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Azure DevOps → Teams</strong></td><td>Install the <strong>Azure DevOps app</strong> in Teams and sign in, or configure <strong>Project Settings → Service hooks → Microsoft Teams</strong></td><td>Build/release completed or failed, PR created, work item updated, code pushed</td></tr>
+            <tr><td><strong>Azure Boards → Teams</strong></td><td><strong>Azure Boards app</strong> for Teams — create and manage work items from the channel</td><td>Work item created/updated, plus <code>@azure boards</code> commands</td></tr>
+            <tr><td><strong>GitHub → Teams</strong></td><td>Install the <strong>GitHub app</strong> for Teams, then <code>@github subscribe owner/repo</code></td><td>PRs, issues, commits, releases, deployments, workflow runs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Signal, not noise</p>
+        <p>Every integration question that mentions "without overwhelming the team" wants <strong>filtered subscriptions</strong> — subscribe only to failures, only to a specific branch, or only to a specific pipeline. Blanket subscriptions are always the wrong answer when the scenario complains about notification volume.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">Domain 1 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Link a GitHub commit to an Azure Boards work item</td><td><code>AB#&lt;ID&gt;</code> in the commit message / PR</td></tr>
+            <tr><td>Close the work item automatically when the PR merges</td><td>Transition keyword + <code>AB#ID</code> (e.g. <code>fixes AB#42</code>)</td></tr>
+            <tr><td>Guarantee every PR is tied to a requirement</td><td>Branch policy: <strong>Check for linked work items</strong></td></tr>
+            <tr><td>Auto-assign reviewers by file path</td><td><strong>CODEOWNERS</strong></td></tr>
+            <tr><td>Render a process diagram in an Azure DevOps wiki</td><td><code>::: mermaid</code> block (not triple backticks)</td></tr>
+            <tr><td>Version documentation alongside release branches</td><td><strong>Publish code as wiki</strong></td></tr>
+            <tr><td>Report a work-item trend over the last six sprints</td><td><strong>Analytics / OData</strong> (not WIQL)</td></tr>
+            <tr><td>Find the bottleneck column on the board</td><td><strong>Cumulative Flow Diagram</strong> — look for the widening band</td></tr>
+            <tr><td>Reduce cycle time quickly</td><td><strong>WIP limits</strong> (Little's Law)</td></tr>
+            <tr><td>Generate a changelog automatically from commits</td><td><strong>Conventional Commits</strong> + <code>semantic-release</code> / GitHub generated notes</td></tr>
+            <tr><td>Notify a Teams channel when a pipeline fails</td><td><strong>Service hooks → Microsoft Teams</strong>, filtered to failures</td></tr>
+            <tr><td>Prove the webhook payload is authentic</td><td>Shared <strong>secret</strong> + verify <code>X-Hub-Signature-256</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../"><div class="pg-dir">← Previous</div><div class="pg-title">Home &amp; overview</div></a>
+        <a class="next" href="../domain-2-source-control/"><div class="pg-dir">Next →</div><div class="pg-title">Domain 2 · Source control strategy</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

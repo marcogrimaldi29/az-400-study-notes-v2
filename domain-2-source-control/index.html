@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain 2 · Source Control Strategy — AZ-400</title>
+  <meta name="description" content="AZ-400 Domain 2 study notes: branching strategies, pull request workflows with branch policies and branch protection rules, merge restrictions, Git LFS and git-fat, Scalar, repository permissions, tags, data recovery and removing secrets from history.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-2-source-control/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Domain 2 · Source Control Strategy">
+  <meta property="og:description" content="Branching strategies, branch policies vs branch protection rules, Git LFS, Scalar, permissions, tags, recovery and secret removal.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-2-source-control/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Domain 2 · Source Control Strategy">
+  <meta name="twitter:description" content="Branching, branch policies, Git LFS, Scalar, permissions, tags and history rewriting for AZ-400.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Domain 2 · Source Control Strategy","description":"Branching strategies, branch policies vs branch protection rules, Git LFS, Scalar, permissions, tags, recovery and secret removal.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-2-source-control/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 2 · Source Control","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-2-source-control/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="source">
+  <div class="layout" style="--accent:var(--d2)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 2 · 10–15%</div>
+        <h1>Design and implement a source control strategy</h1>
+        <p>Choosing a branching model that matches how the team releases, enforcing quality at the merge point, and keeping the repository fast, permissioned and free of things that should never have been committed.</p>
+      </div>
+
+      <div class="card">
+        <strong>Two objectives:</strong>
+        <ul style="margin-bottom:0">
+          <li><a href="#branching">Branching strategies for source code</a> — trunk-based, feature, release; PR workflow; merge restrictions</li>
+          <li><a href="#repos">Configure &amp; manage repositories</a> — large files, scaling, permissions, tags, recovery, data removal</li>
+        </ul>
+        <p style="margin:10px 0 0">Terminology alert: Azure Repos calls the enforcement mechanism <strong>branch policies</strong>; GitHub calls it <strong>branch protection rules</strong> (and, at scale, <strong>rulesets</strong>). Both appear in the skills measured by name.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="branching"><span class="num">2.1</span> Branching strategies for the source code</h2>
+
+      <h3 id="strategy-comparison">Choosing a branch strategy</h3>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Strategy</th><th>Long-lived branches</th><th>Branch lifetime</th><th>Best for</th><th>Complexity</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Trunk-based</strong></td><td><code>main</code> only</td><td>Hours to 1–2 days (or none)</td><td>Continuous delivery, microservices, mature CI</td><td><span class="pill p-green">Low</span></td></tr>
+            <tr><td><strong>Feature branch</strong></td><td><code>main</code></td><td>Days</td><td>Most teams; natural PR review point</td><td><span class="pill p-green">Low–medium</span></td></tr>
+            <tr><td><strong>GitHub Flow</strong></td><td><code>main</code></td><td>Days</td><td>Web/SaaS deployed continuously</td><td><span class="pill p-green">Low</span></td></tr>
+            <tr><td><strong>Release branch</strong></td><td><code>main</code> + <code>release/x.y</code></td><td>Life of the release</td><td>Multiple supported versions in production</td><td><span class="pill p-amber">Medium</span></td></tr>
+            <tr><td><strong>Git Flow</strong></td><td><code>main</code> + <code>develop</code></td><td>Weeks</td><td>Boxed/versioned software with QA hardening</td><td><span class="pill p-red">High</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Trunk-based development</h4>
+      <p>Everyone integrates into <code>main</code> at least daily. Branches, if used at all, live for hours.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+gitGraph
+  commit id: "init"
+  commit id: "feat A"
+  branch short-lived
+  commit id: "feat B (1 day)"
+  checkout main
+  merge short-lived
+  commit id: "feat C"
+  commit id: "feat D"
+        </div>
+        <div class="mm-cap">Trunk-based development: one integration point, tiny branches, everything else hidden behind feature flags.</div>
+      </div>
+      <ul>
+        <li><strong>Feature flags are mandatory</strong> — they are what makes it safe to merge incomplete work into a branch that ships. (See <a href="../domain-3-pipelines/deployments/#feature-flags">Domain 3.4</a>.)</li>
+        <li>Requires fast, reliable CI on every commit, plus strong automated test coverage.</li>
+        <li>Eliminates merge hell: there is nothing to diverge from.</li>
+      </ul>
+
+      <h4>Release branching</h4>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+gitGraph
+  commit id: "v1 dev"
+  branch release/1.0
+  commit id: "stabilise" tag: "v1.0.0"
+  checkout main
+  commit id: "v2 dev"
+  checkout release/1.0
+  commit id: "hotfix" tag: "v1.0.1"
+  checkout main
+  merge release/1.0 id: "port fix forward"
+  commit id: "more v2"
+        </div>
+        <div class="mm-cap">Cut a release branch at feature freeze; fix on the branch and always port the fix forward to main.</div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — always merge the fix forward</p>
+        <p>A hotfix applied only to <code>release/1.0</code> will <strong>regress</strong> the moment 2.0 ships. Every release-branch fix must also be merged or <strong>cherry-picked</strong> back into <code>main</code>. Expect a build-list question ordering: <em>branch from the release tag → fix → PR → merge to release → tag → deploy → cherry-pick to main</em>.</p>
+      </div>
+
+      <h4>Naming conventions</h4>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">convention</span> branch names</div>
+        <pre class="code"><code>feature/1234-user-authentication   <span class="cm"># new work, references the work item</span>
+bugfix/5678-null-reference         <span class="cm"># non-urgent defect</span>
+hotfix/payment-gateway-timeout     <span class="cm"># urgent production fix</span>
+release/2.4                        <span class="cm"># stabilisation branch for a version</span>
+users/marco/spike-caching          <span class="cm"># personal/experimental (Azure Repos convention)</span></code></pre>
+      </div>
+      <p>Consistent prefixes matter operationally: branch policies, pipeline triggers and branch-control checks are all configured with wildcards such as <code>release/*</code> and <code>feature/*</code>.</p>
+
+      <h3 id="pr-workflow">Pull request workflow</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  A[Create branch] --> B[Commit work]
+  B --> C[Open PR<br/>draft → ready]
+  C --> D[Automated checks<br/>build validation · status checks]
+  C --> E[Human review<br/>required reviewers · CODEOWNERS]
+  D --> F{All policies met?}
+  E --> F
+  F -->|No| B
+  F -->|Yes| G[Complete / merge]
+  G --> H[Delete source branch]
+        </div>
+        <div class="mm-cap">A PR completes only when every required policy — automated and human — is satisfied.</div>
+      </div>
+
+      <h4>Azure Repos branch policies</h4>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Policy</th><th>What it enforces</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Require a minimum number of reviewers</strong></td><td>N approvals; options to reset votes on new push, disallow the requester approving their own PR, and allow completion with pending votes</td></tr>
+            <tr><td><strong>Check for linked work items</strong></td><td>PR must link at least one work item — the traceability enforcement point</td></tr>
+            <tr><td><strong>Check for comment resolution</strong></td><td>All PR comments must be resolved before completion</td></tr>
+            <tr><td><strong>Limit merge types</strong></td><td>Restrict which of the four merge strategies are allowed</td></tr>
+            <tr><td><strong>Build validation</strong></td><td>A named pipeline must succeed; can be required or optional, with an expiry after N hours</td></tr>
+            <tr><td><strong>Status checks</strong></td><td>An external service (SonarQube, a scanner, a custom app) must post a successful status via the REST API</td></tr>
+            <tr><td><strong>Automatically included reviewers</strong></td><td>Add specific people/groups as required or optional reviewers, optionally scoped to file paths</td></tr>
+            <tr><td><strong>Require merge from specific branches</strong></td><td>Restrict which source branches may merge into the target</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>GitHub branch protection rules &amp; rulesets</h4>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Protection</th><th>What it enforces</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Require a pull request before merging</strong></td><td>No direct pushes; set required approvals, dismiss stale approvals on new commits, require review from Code Owners</td></tr>
+            <tr><td><strong>Require status checks to pass</strong></td><td>Named checks must be green; optionally <em>require branches to be up to date</em> before merging</td></tr>
+            <tr><td><strong>Require conversation resolution</strong></td><td>All review threads resolved</td></tr>
+            <tr><td><strong>Require signed commits</strong></td><td>Only GPG/S-MIME/SSH-signed commits</td></tr>
+            <tr><td><strong>Require linear history</strong></td><td>Blocks merge commits — forces squash or rebase</td></tr>
+            <tr><td><strong>Require deployments to succeed</strong></td><td>The branch must have deployed successfully to named environments</td></tr>
+            <tr><td><strong>Restrict who can push</strong></td><td>Limit push access to named users, teams or apps</td></tr>
+            <tr><td><strong>Do not allow bypassing / include administrators</strong></td><td>Rules apply to admins too</td></tr>
+            <tr><td><strong>Block force pushes &amp; deletions</strong></td><td>Protect history and the branch's existence</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Rulesets — the modern, scalable form</p>
+        <p>GitHub <strong>rulesets</strong> supersede classic branch protection for organisation-wide governance: they can be defined <em>at the org level</em> and applied across many repositories, they target branches <em>and tags</em>, they support explicit <strong>bypass lists</strong>, and they have an <strong>evaluate (dry-run) mode</strong> so you can see what would be blocked before enforcing. Multiple rulesets layer additively — the most restrictive outcome wins.</p>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the vocabulary is the question</p>
+        <p>Azure Repos → <strong>branch policies</strong>, applied per branch or by wildcard, configured under <em>Repos → Branches → Branch policies</em>. GitHub → <strong>branch protection rules</strong> / <strong>rulesets</strong>, under <em>Settings → Rules</em>. "Build validation" (Azure) and "required status checks" (GitHub) are the same idea with different names — and both are the answer to "prevent merging code that fails CI".</p>
+      </div>
+
+      <h3 id="merge-types">Merge strategies and restrictions</h3>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Strategy</th><th>Resulting history</th><th>Choose when</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Merge (no fast-forward)</strong></td><td>Preserves every commit plus a merge commit; non-linear</td><td>You want the full development history of the branch</td></tr>
+            <tr><td><strong>Squash merge</strong></td><td>One new commit on the target; branch commits are discarded</td><td>Noisy WIP commits; you want one commit per PR/feature</td></tr>
+            <tr><td><strong>Rebase and fast-forward</strong></td><td>Branch commits replayed onto the target; fully linear, no merge commit</td><td>You want a clean linear log and keep individual commits</td></tr>
+            <tr><td><strong>Semi-linear merge</strong> (rebase + merge commit)</td><td>Rebases, then adds a merge commit</td><td>Linear-ish history that still records where each PR landed</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — squash merge and traceability</p>
+        <p><strong>Squash merge rewrites the branch into a single new commit</strong>, so the original commit SHAs disappear from the target branch. That is exactly what you want for a tidy <code>main</code>, but it means the source branch should be deleted afterwards (re-merging it later causes conflicts) and per-commit authorship is lost. If a scenario demands "preserve individual commit attribution", squash is the <em>wrong</em> answer.</p>
+      </div>
+
+      <h4>CODEOWNERS</h4>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">github</span> .github/CODEOWNERS (also valid in / or docs/)</div>
+        <pre class="code"><code><span class="cm"># Later matches win — the LAST matching pattern takes precedence.</span>
+*                       @org/platform-team
+
+/docs/                  @org/docs-team
+*.ts                    @org/frontend-team @lead-developer
+/infrastructure/        @org/devops-team
+/src/auth/              @org/security-team
+/.github/workflows/     @org/devops-team</code></pre>
+      </div>
+      <ul>
+        <li>Owners are <strong>automatically requested</strong> for review when a PR touches a matching path.</li>
+        <li>Combine with <em>Require review from Code Owners</em> to make that approval mandatory.</li>
+        <li>Azure Repos achieves the same with <strong>automatically included reviewers</strong> scoped to a path.</li>
+      </ul>
+
+      <!-- ============================================================= -->
+      <h2 id="repos"><span class="num">2.2</span> Configure and manage repositories</h2>
+
+      <h3 id="large-files">Managing large files</h3>
+      <p>Git stores a complete copy of every version of every file in every clone. Large binaries — which do not delta-compress — bloat the repository permanently, because history is immutable.</p>
+
+      <h4>Git LFS (Large File Storage)</h4>
+      <p>LFS replaces large files in the repo with small <strong>text pointer files</strong>; the real content lives on a separate LFS server and is fetched on checkout.</p>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">bash</span> git-lfs setup</div>
+        <pre class="code"><code>git lfs install                <span class="cm"># one-time, per machine</span>
+
+git lfs track "*.psd"          <span class="cm"># writes rules into .gitattributes</span>
+git lfs track "*.mp4"
+git lfs track "assets/**/*.bin"
+
+<span class="cm"># .gitattributes now contains:</span>
+<span class="cm">#   *.psd filter=lfs diff=lfs merge=lfs -text</span>
+
+git add .gitattributes         <span class="cm"># MUST be committed — it is what makes LFS work for everyone</span>
+git add design.psd
+git commit -m "Add design assets"
+git push origin main
+
+git lfs ls-files               <span class="cm"># list files currently managed by LFS</span>
+git lfs migrate import --include="*.psd"   <span class="cm"># convert EXISTING history to LFS (rewrites history)</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — LFS gotchas</p>
+        <p><strong>Tracking is not retroactive.</strong> <code>git lfs track</code> only affects files committed <em>after</em> the rule exists; converting existing history needs <code>git lfs migrate import</code>, which <strong>rewrites history</strong>. Also: <code>.gitattributes</code> must be committed and pushed or other clones will not use LFS. And LFS files are <strong>not de-duplicated across branches</strong> — quota is consumed by every distinct version.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Azure Repos</th><th>GitHub</th></tr></thead>
+          <tbody>
+            <tr><td>LFS support</td><td>Supported; no extra charge for LFS storage beyond repo limits</td><td>Supported; free tier of 1 GB storage + 1 GB bandwidth/month, then paid data packs</td></tr>
+            <tr><td>Authentication</td><td>Same as the repo (PAT / Entra)</td><td>Same as the repo (token / SSH)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>git-fat</h4>
+      <p>A lighter-weight, third-party alternative to LFS: large files are replaced by a placeholder containing a SHA-1, and the real payload is synced to an external store over <strong>rsync</strong> (or S3-style backends).</p>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">config</span> .gitfat</div>
+        <pre class="code"><code>[rsync]
+remote = storage-server:/srv/fat-store</code></pre>
+      </div>
+      <p>Use it when you need a self-hosted binary store with no vendor dependency. In practice <strong>LFS is the default answer</strong>; git-fat appears in the skills measured mainly so you recognise the name.</p>
+
+      <h3 id="scaling">Scaling and optimizing a Git repository</h3>
+      <h4>Scalar</h4>
+      <p><strong>Scalar</strong> ships with Git itself and applies the large-repo configuration that Microsoft developed for the Windows and Office repositories.</p>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Technique</th><th>What it avoids</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Partial clone</strong> (<code>--filter=blob:none</code>)</td><td>Downloading file <em>contents</em> you never open — blobs are fetched on demand</td></tr>
+            <tr><td><strong>Sparse checkout</strong> (cone mode)</td><td>Materialising directories your team does not work in</td></tr>
+            <tr><td><strong>Commit-graph</strong></td><td>Walking history from scratch — speeds up <code>log</code>, <code>blame</code>, <code>merge-base</code></td></tr>
+            <tr><td><strong>Multi-pack index</strong></td><td>Slow object lookup across many pack files</td></tr>
+            <tr><td><strong>FSMonitor</strong> (file system watcher)</td><td>Scanning the whole working tree on every <code>git status</code></td></tr>
+            <tr><td><strong>Background maintenance</strong></td><td>Foreground stalls — prefetch and repack run on a schedule</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">bash</span> scalar</div>
+        <pre class="code"><code>scalar clone https://dev.azure.com/org/project/_git/large-repo
+scalar register            <span class="cm"># opt an EXISTING clone into Scalar's maintenance + config</span>
+scalar run all             <span class="cm"># run maintenance tasks now</span>
+scalar unregister
+
+<span class="cm"># The underlying primitives, if asked about them directly:</span>
+git clone --filter=blob:none &lt;url&gt;
+git sparse-checkout set --cone src/api src/shared</code></pre>
+      </div>
+
+      <h4>Cross-repository sharing</h4>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Technique</th><th>How it works</th><th>Trade-off</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Package feed</strong> (Azure Artifacts / GitHub Packages)</td><td>Publish the shared code as a versioned package</td><td><span class="pill p-green">Preferred</span> — proper versioning and dependency resolution</td></tr>
+            <tr><td><strong>Git submodule</strong></td><td>A pointer to another repo pinned at a specific commit</td><td>Explicit versions, but easy to forget <code>--recurse-submodules</code></td></tr>
+            <tr><td><strong>Git subtree</strong></td><td>Copies the other repo's content (and optionally history) into a subdirectory</td><td>No special client commands for consumers; messier history</td></tr>
+            <tr><td><strong>Sparse checkout of a monorepo</strong></td><td>One repo, each team checks out only its folders</td><td>Single source of truth; needs monorepo tooling and CI path filters</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">bash</span> submodules</div>
+        <pre class="code"><code>git submodule add https://github.com/org/shared-lib ./libs/shared
+git clone --recurse-submodules https://github.com/org/project
+git submodule update --init --recursive     <span class="cm"># after a plain clone</span>
+git submodule update --remote --merge       <span class="cm"># advance to the submodule's latest</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — share code as a package, not a submodule</p>
+        <p>When the exam asks how to share a <strong>library</strong> across teams or repositories, the expected answer is a <strong>package feed</strong> (Azure Artifacts / GitHub Packages) — it gives you semantic versioning, upstream caching and independent release cadence. Submodules are the answer only when the scenario explicitly needs the <em>source</em> pinned at a commit (e.g. vendored tooling built from source).</p>
+      </div>
+
+      <h3 id="permissions">Permissions in the source control repository</h3>
+      <h4>Azure DevOps</h4>
+      <p>Access is the intersection of an <strong>access level</strong> (what you paid for), <strong>security group membership</strong> (what role you hold) and <strong>object-level permissions</strong> (Allow / Deny / Not set on a specific repo or branch).</p>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Repository permission</th><th>Grants</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Read</strong></td><td>Clone, fetch, browse</td></tr>
+            <tr><td><strong>Contribute</strong></td><td>Push to branches that have no blocking policy</td></tr>
+            <tr><td><strong>Create branch</strong></td><td>Create new branches</td></tr>
+            <tr><td><strong>Contribute to pull requests</strong></td><td>Comment on and vote in PRs</td></tr>
+            <tr><td><strong>Force push (rewrite history, delete branches)</strong></td><td>Destructive history rewriting — grant to almost nobody</td></tr>
+            <tr><td><strong>Bypass policies when pushing / completing pull requests</strong></td><td>Ignore branch policies — audit these grants</td></tr>
+            <tr><td><strong>Manage permissions</strong></td><td>Edit the repo's ACLs</td></tr>
+            <tr><td><strong>Delete or disable repository</strong></td><td>Remove the repo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Deny beats Allow</p>
+        <p>In Azure DevOps, an explicit <strong>Deny always wins</strong> over an Allow inherited from any group — with one exception: members of <em>Project Collection Administrators</em> can override. Permissions also <strong>inherit</strong> from project → repository → branch, so the cleanest model is to grant at the group level and only set object-level permissions where you genuinely need an exception.</p>
+      </div>
+
+      <h4>GitHub</h4>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Role</th><th>Can</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Read</strong></td><td>View, clone, open issues and PRs</td></tr>
+            <tr><td><strong>Triage</strong></td><td>Read + manage issues and PRs (label, assign, close) — <strong>no write access to code</strong></td></tr>
+            <tr><td><strong>Write</strong></td><td>Triage + push to unprotected branches, manage releases</td></tr>
+            <tr><td><strong>Maintain</strong></td><td>Write + repo settings management, <strong>excluding</strong> destructive/sensitive actions</td></tr>
+            <tr><td><strong>Admin</strong></td><td>Full control, including deletion, visibility changes and protection rules</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Grant access through <strong>teams</strong>, not individuals — teams support nesting and inherit parent permissions.</li>
+        <li><strong>Outside collaborators</strong> are non-org members granted access to specific repositories; they do not consume a team's permissions model and should be reviewed regularly.</li>
+        <li>Where a user gets permissions from multiple sources, the <strong>highest</strong> permission wins (the opposite of Azure DevOps' Deny-wins model).</li>
+      </ul>
+
+      <h3 id="tags">Tags</h3>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">bash</span> tagging</div>
+        <pre class="code"><code>git tag v1.0.0                             <span class="cm"># lightweight: just a pointer, no metadata</span>
+git tag -a v2.1.0 -m "Adds payment gateway" <span class="cm"># annotated: tagger, date, message — RECOMMENDED for releases</span>
+git tag -s v2.1.0 -m "Signed release"       <span class="cm"># signed: annotated + GPG signature</span>
+git tag -a v1.9.5 abc1234 -m "Hotfix"       <span class="cm"># tag a specific historical commit</span>
+
+git push origin v2.1.0                      <span class="cm"># tags are NOT pushed by default</span>
+git push origin --tags                      <span class="cm"># push all tags</span>
+
+git tag --list "v2.*"
+git tag -d v1.0.0                           <span class="cm"># delete locally</span>
+git push origin --delete v1.0.0             <span class="cm"># delete on the remote</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — lightweight vs annotated</p>
+        <p><strong>Annotated tags are full Git objects</strong> carrying the tagger, date, message and optional signature; lightweight tags are just a named pointer. For releases — and anywhere auditability matters — the answer is <strong>annotated</strong> (<code>-a</code>) or <strong>signed</strong> (<code>-s</code>). Also remember tags are not pushed by <code>git push</code> alone, and <code>git describe</code> only sees annotated tags unless you pass <code>--tags</code>.</p>
+      </div>
+
+      <h3 id="recovery">Recovering specific data with Git commands</h3>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Situation</th><th>Command</th><th>Safe on a shared branch?</th></tr></thead>
+          <tbody>
+            <tr><td>Undo last commit, keep changes <strong>staged</strong></td><td><code>git reset --soft HEAD~1</code></td><td><span class="pill p-red">No</span> — rewrites history</td></tr>
+            <tr><td>Undo last commit, keep changes in the working tree</td><td><code>git reset --mixed HEAD~1</code> (default)</td><td><span class="pill p-red">No</span></td></tr>
+            <tr><td>Undo last commit and <strong>discard</strong> the changes</td><td><code>git reset --hard HEAD~1</code></td><td><span class="pill p-red">No</span></td></tr>
+            <tr><td>Undo a commit that is already pushed</td><td><code>git revert &lt;sha&gt;</code> — creates a new inverse commit</td><td><span class="pill p-green">Yes</span></td></tr>
+            <tr><td>Restore one file from the last commit</td><td><code>git restore --source=HEAD -- path/to/file</code></td><td><span class="pill p-green">Yes</span></td></tr>
+            <tr><td>Recover a deleted branch</td><td><code>git reflog</code> to find the SHA, then <code>git branch &lt;name&gt; &lt;sha&gt;</code></td><td><span class="pill p-green">Yes</span></td></tr>
+            <tr><td>Find any "lost" commit</td><td><code>git reflog</code> / <code>git fsck --lost-found</code></td><td><span class="pill p-green">Yes</span></td></tr>
+            <tr><td>Copy one commit onto another branch</td><td><code>git cherry-pick &lt;sha&gt;</code></td><td><span class="pill p-green">Yes</span></td></tr>
+            <tr><td>Shelve work temporarily</td><td><code>git stash push -m "wip"</code> / <code>git stash pop</code></td><td><span class="pill p-green">Yes</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d2)">
+        <div class="code-head"><span class="ch-tag">bash</span> reflog rescue</div>
+        <pre class="code"><code>git reflog
+<span class="cm"># abc1234 HEAD@{0}: reset: moving to HEAD~1</span>
+<span class="cm"># def5678 HEAD@{1}: commit: the work I just destroyed   ← recover this</span>
+<span class="cm"># ghi9012 HEAD@{2}: commit: earlier work</span>
+
+git reset --hard HEAD@{1}          <span class="cm"># put HEAD back</span>
+git branch recovered def5678       <span class="cm"># or rescue it onto a new branch</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — revert vs reset</p>
+        <p><strong><code>git revert</code> is the only safe undo for anything already pushed.</strong> It adds a new commit that reverses the change, so collaborators' history stays valid. <code>git reset</code> rewrites history and requires a force push, which breaks every other clone. The exam phrases this as "the change is already in production / already shared" → <strong>revert</strong>. Note that <code>reflog</code> is <strong>local only</strong> and entries expire (90 days for reachable, 30 for unreachable, by default).</p>
+      </div>
+
+      <h3 id="removing-data">Removing specific data from source control</h3>
+      <div class="callout warn">
+        <p class="ct-title">These operations rewrite history</p>
+        <p>Every commit SHA after the rewrite point changes. Coordinate with the whole team, and expect every existing clone to need re-cloning.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-purple">
+          <thead><tr><th>Tool</th><th>Use</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><strong>git filter-repo</strong></td><td>The recommended modern tool for rewriting history</td><td>Fast, safe defaults; replaced <code>git filter-branch</code>, which Git now actively discourages</td></tr>
+            <tr><td><strong>BFG Repo-Cleaner</strong></td><td>Simple, very fast removal of files or secret strings</td><td>Java tool; will not touch the commit currently at HEAD — clean that up first</td></tr>
+            <tr><td><strong>git filter-branch</strong></td><td>Legacy</td><td>Slow and error-prone — a <em>wrong</em> answer if a modern option is offered</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d2)">
+          <div class="code-head"><span class="ch-tag">bash</span> git filter-repo</div>
+          <pre class="code"><code><span class="cm"># Remove one file from ALL history</span>
+git filter-repo --path secrets.env --invert-paths
+
+<span class="cm"># Remove every file matching a glob</span>
+git filter-repo --path-glob '*.pem' --invert-paths
+
+<span class="cm"># Redact a literal string everywhere</span>
+git filter-repo --replace-text patterns.txt</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d2)">
+          <div class="code-head"><span class="ch-tag">bash</span> BFG Repo-Cleaner</div>
+          <pre class="code"><code>git clone --mirror https://.../repo.git
+
+java -jar bfg.jar --delete-files secrets.env repo.git
+java -jar bfg.jar --replace-text passwords.txt repo.git
+java -jar bfg.jar --strip-blobs-bigger-than 50M repo.git
+
+cd repo.git
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+git push --force</code></pre>
+        </div>
+      </div>
+      <h4>The full incident response for a leaked secret</h4>
+      <ol class="steps">
+        <li><strong>Rotate the secret first.</strong> Assume it is compromised the moment it was pushed — history rewriting is cleanup, not containment.</li>
+        <li><strong>Rewrite history</strong> with <code>git filter-repo</code> or BFG, then <strong>force push</strong> all branches and tags.</li>
+        <li><strong>Tell every collaborator to re-clone.</strong> Old clones still contain the secret and can push it back.</li>
+        <li><strong>Purge cached copies.</strong> Forks, PR refs and the server-side cache can still serve the old blobs — on GitHub, open a support request to purge cached views; on Azure DevOps, contact support to clear server-side data after the force push.</li>
+        <li><strong>Prevent recurrence</strong> — enable <strong>secret scanning with push protection</strong>, add pre-commit hooks (<code>gitleaks</code>, <code>detect-secrets</code>) and move the value into Key Vault. (See <a href="../domain-4-security/#secrets">Domain 4</a>.)</li>
+      </ol>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — rotation beats rewriting</p>
+        <p>If a question offers both "remove it from history" and "rotate the credential", the <strong>first</strong> action is always to <strong>rotate</strong>. A build-list question will usually want: rotate → rewrite history → force push → notify collaborators to re-clone → enable push protection.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">Domain 2 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Daily deploys, experienced team, minimal branching</td><td><strong>Trunk-based development</strong> + feature flags</td></tr>
+            <tr><td>Support several versions in production at once</td><td><strong>Release branching</strong> (fix on the branch, port forward)</td></tr>
+            <tr><td>Block merging when CI fails (Azure Repos)</td><td>Branch policy: <strong>Build validation</strong></td></tr>
+            <tr><td>Block merging when CI fails (GitHub)</td><td><strong>Required status checks</strong> in a protection rule / ruleset</td></tr>
+            <tr><td>Apply the same rules to 200 repos at once</td><td>GitHub <strong>organisation-level ruleset</strong></td></tr>
+            <tr><td>Enforce one commit per feature on <code>main</code></td><td><strong>Squash merge</strong> (limit merge types)</td></tr>
+            <tr><td>Forbid merge commits entirely</td><td><strong>Require linear history</strong> / rebase + fast-forward</td></tr>
+            <tr><td>Reviewers auto-assigned by folder</td><td><strong>CODEOWNERS</strong> (or automatically included reviewers)</td></tr>
+            <tr><td>Repo bloated by design files and videos</td><td><strong>Git LFS</strong> (+ <code>git lfs migrate import</code> for existing history)</td></tr>
+            <tr><td>Clone of a huge monorepo takes an hour</td><td><strong>Scalar</strong> — partial clone + sparse checkout</td></tr>
+            <tr><td>Share a library between five repos</td><td><strong>Azure Artifacts / GitHub Packages</strong> feed</td></tr>
+            <tr><td>Undo a change already merged and deployed</td><td><code>git revert</code></td></tr>
+            <tr><td>Recover a branch someone deleted</td><td><code>git reflog</code> → <code>git branch &lt;name&gt; &lt;sha&gt;</code></td></tr>
+            <tr><td>A password was committed last month</td><td><strong>Rotate it</strong>, then <code>git filter-repo</code>/BFG, force push, re-clone</td></tr>
+            <tr><td>Tag a release with author and message</td><td><strong>Annotated tag</strong> (<code>git tag -a</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../domain-1-processes/"><div class="pg-dir">← Previous</div><div class="pg-title">Domain 1 · Processes &amp; communications</div></a>
+        <a class="next" href="../domain-3-pipelines/"><div class="pg-dir">Next →</div><div class="pg-title">Domain 3 · Build &amp; release pipelines</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

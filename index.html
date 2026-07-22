@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AZ-400 Study Notes v2 · Designing and Implementing Microsoft DevOps Solutions</title>
+  <meta name="description" content="Comprehensive, exam-focused study notes for Microsoft AZ-400: Designing and Implementing Microsoft DevOps Solutions. Aligned to the skills measured effective July 27, 2026 — progress bars, Mermaid diagrams, YAML comparisons, tables and exam caveats.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="icon" href="assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Study Notes v2 · Microsoft DevOps Engineer Expert">
+  <meta property="og:description" content="Exam-focused AZ-400 study notes aligned to the latest skills measured — progress bars, diagrams, side-by-side YAML and exam caveats.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Study Notes v2 · Microsoft DevOps Engineer Expert">
+  <meta name="twitter:description" content="Exam-focused AZ-400 study notes aligned to the latest Microsoft skills measured.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://marcogrimaldi29.com/az-400-study-notes-v2/#website","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/","name":"AZ-400 Study Notes v2","description":"Exam-focused study notes for Microsoft AZ-400: Designing and Implementing Microsoft DevOps Solutions.","inLanguage":"en","publisher":{"@id":"https://marcogrimaldi29.com/#person"}},{"@type":"Person","@id":"https://marcogrimaldi29.com/#person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/","sameAs":["https://github.com/marcogrimaldi29","https://www.linkedin.com/in/marco-grimaldi29/"]},{"@type":"Course","name":"AZ-400: Designing and Implementing Microsoft DevOps Solutions — Study Notes","description":"Free, exam-focused study notes covering the five AZ-400 skill domains: processes and communications, source control strategy, build and release pipelines, security and compliance, and instrumentation.","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/","inLanguage":"en","provider":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"teaches":["Design and implement processes and communications","Design and implement a source control strategy","Design and implement build and release pipelines","Develop a security and compliance plan","Implement an instrumentation strategy"],"hasCourseInstance":{"@type":"CourseInstance","courseMode":"online","courseWorkload":"PT60H"}}]}
+  </script>
+</head>
+<body data-page="home">
+
+  <div class="page-wide">
+
+    <section class="hero">
+      <span class="eyebrow">Microsoft Certification · Exam AZ-400</span>
+      <h1>Designing &amp; Implementing Microsoft DevOps Solutions</h1>
+      <p>A complete, exam-focused companion to the official documentation — rebuilt around the latest <strong>Skills Measured (effective July 27, 2026)</strong>. Learn the concepts, memorize the caveats, and walk into the exam ready.</p>
+      <div class="hero-meta">
+        <span>⏱ ~120 min</span>
+        <span>✅ Pass mark: 700/1000</span>
+        <span>📚 5 skill domains</span>
+        <span>🎓 DevOps Engineer Expert</span>
+      </div>
+    </section>
+
+    <div class="card">
+      <p class="lead" style="margin-top:0">AZ-400 validates your ability to combine <strong>people, processes and products</strong> to enable continuous delivery of value. It is unusual among Azure exams in that it spans <strong>two toolchains</strong> — <strong>Azure DevOps</strong> and <strong>GitHub</strong> — and expects you to pick the right one for a scenario, not just to know one of them.</p>
+      <div class="callout note" style="margin-bottom:0">
+        <p class="ct-title">How to use these notes</p>
+        <p>Work through the five domains in order, but budget your time by weight — <a href="domain-3-pipelines/">Domain 3</a> alone is over half the exam and is split into six sub-pages. Then drill the <a href="exam-tips/">Exam Tips &amp; Caveats</a> page before test day. These notes are a <strong>companion</strong> — pair every section with hands-on practice in a free Azure DevOps organization and a GitHub repo.</p>
+      </div>
+    </div>
+
+    <h2 class="content" style="border:0;margin-bottom:6px">Skills measured at a glance</h2>
+    <p class="lead" style="margin-top:0">Exam weightings — focus your time accordingly. Build and release pipelines is more than <strong>half</strong> the exam on its own.</p>
+
+    <div class="card">
+      <div class="weight-list">
+        <div class="weight-row" style="--accent:var(--d1)">
+          <div class="wr-top"><span class="wr-name">1 · Design and implement processes and communications</span><span class="wr-pct">10–15%</span></div>
+          <div class="progress"><span data-pct="13"></span></div>
+        </div>
+        <div class="weight-row" style="--accent:var(--d2)">
+          <div class="wr-top"><span class="wr-name">2 · Design and implement a source control strategy</span><span class="wr-pct">10–15%</span></div>
+          <div class="progress"><span data-pct="13"></span></div>
+        </div>
+        <div class="weight-row" style="--accent:var(--d3)">
+          <div class="wr-top"><span class="wr-name">3 · Design and implement build and release pipelines</span><span class="wr-pct">50–55%</span></div>
+          <div class="progress"><span data-pct="52"></span></div>
+        </div>
+        <div class="weight-row" style="--accent:var(--d4)">
+          <div class="wr-top"><span class="wr-name">4 · Develop a security and compliance plan</span><span class="wr-pct">10–15%</span></div>
+          <div class="progress"><span data-pct="13"></span></div>
+        </div>
+        <div class="weight-row" style="--accent:var(--d5)">
+          <div class="wr-top"><span class="wr-name">5 · Implement an instrumentation strategy</span><span class="wr-pct">5–10%</span></div>
+          <div class="progress"><span data-pct="8"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout exam">
+      <p class="ct-title">Where the marks actually are</p>
+      <p>If you only have limited time, <strong>Domain 3 is the exam</strong>. Roughly one question in two comes from pipelines, deployments, IaC, packaging, testing and pipeline maintenance. Domains 1, 2 and 4 are each worth about a quarter of Domain 3; Domain 5 is the smallest but is cheap to learn — basic KQL and Application Insights concepts carry most of it.</p>
+    </div>
+
+    <h2 class="content" style="border:0;margin-bottom:6px">Study domains</h2>
+    <div class="card-grid">
+      <a class="nav-card" href="domain-1-processes/" style="--accent:var(--d1)">
+        <span class="nc-badge">Domain 1 · 10–15%</span>
+        <h3>Processes &amp; communications</h3>
+        <p>Flow of work and traceability, GitHub Flow, Azure Boards ↔ GitHub integration, DORA and flow metrics, dashboards, wikis, Mermaid, release notes, webhooks and Teams integration.</p>
+        <span class="nc-foot">Start here →</span>
+      </a>
+      <a class="nav-card" href="domain-2-source-control/" style="--accent:var(--d2)">
+        <span class="nc-badge">Domain 2 · 10–15%</span>
+        <h3>Source control strategy</h3>
+        <p>Branching strategies, branch policies vs branch protection rules, merge types, Git LFS and git-fat, Scalar, permissions, tags, data recovery and secret removal.</p>
+        <span class="nc-foot">Explore →</span>
+      </a>
+      <a class="nav-card" href="domain-3-pipelines/" style="--accent:var(--d3)">
+        <span class="nc-badge">Domain 3 · 50–55%</span>
+        <h3>Build &amp; release pipelines</h3>
+        <p>The core of the exam, in six parts: package management, testing strategy, pipelines, deployments, infrastructure as code, and maintaining pipelines.</p>
+        <span class="nc-foot">6 sub-pages →</span>
+      </a>
+      <a class="nav-card" href="domain-4-security/" style="--accent:var(--d4)">
+        <span class="nc-badge">Domain 4 · 10–15%</span>
+        <h3>Security &amp; compliance</h3>
+        <p>Service principals vs managed identities, workload identity federation, GitHub and Azure DevOps permissions, Key Vault, secure files, GitHub Advanced Security and Defender for Cloud.</p>
+        <span class="nc-foot">Explore →</span>
+      </a>
+      <a class="nav-card" href="domain-5-instrumentation/" style="--accent:var(--d5)">
+        <span class="nc-badge">Domain 5 · 5–10%</span>
+        <h3>Instrumentation strategy</h3>
+        <p>Azure Monitor and Log Analytics, Application Insights, VM/Container/Storage/Network Insights, GitHub insights, alerting, distributed tracing and basic KQL.</p>
+        <span class="nc-foot">Explore →</span>
+      </a>
+      <a class="nav-card" href="exam-tips/" style="--accent:var(--ms-amber)">
+        <span class="nc-badge">Final review</span>
+        <h3>Exam tips &amp; caveats</h3>
+        <p>The "which tool" decision tables, Azure DevOps ↔ GitHub terminology map, precedence rules, and the traps AZ-400 reuses year after year.</p>
+        <span class="nc-foot">Read before test day →</span>
+      </a>
+    </div>
+
+    <h2 class="content" style="border:0;margin-bottom:6px">Before you book</h2>
+    <div class="card-grid">
+      <div class="stat"><div class="s-num">700</div><div class="s-lbl">Score needed to pass (scaled to 1000)</div></div>
+      <div class="stat"><div class="s-num">40–60</div><div class="s-lbl">Typical number of questions</div></div>
+      <div class="stat"><div class="s-num">AZ-104<br>or AZ-204</div><div class="s-lbl">Prerequisite for the certification</div></div>
+      <div class="stat"><div class="s-num">1y</div><div class="s-lbl">Certification renewal (free online)</div></div>
+    </div>
+
+    <div class="callout warn">
+      <p class="ct-title">Prerequisite — read this before you schedule</p>
+      <p>Passing AZ-400 alone does <strong>not</strong> grant the certification. <strong>Microsoft Certified: DevOps Engineer Expert</strong> requires AZ-400 <em>plus</em> either <strong>Azure Administrator Associate (AZ-104)</strong> or <strong>Azure Developer Associate (AZ-204)</strong>. You may sit AZ-400 first, but the expert badge is only issued once the associate prerequisite is also held.</p>
+    </div>
+
+    <div class="callout exam">
+      <p class="ct-title">Exam reality check</p>
+      <p>Expect <strong>case studies</strong>, drag-and-drop ordering, "build list" sequencing, hotspot (dropdown) and yes/no statement sets — plus a fair amount of <strong>YAML reading</strong>. Many questions hinge on <em>which tool / which strategy / which order</em>, and a large share ask you to choose between the <strong>Azure DevOps</strong> and the <strong>GitHub</strong> way of doing the same thing. Most questions cover GA features; commonly-used Preview features can appear.</p>
+    </div>
+
+    <div class="callout tip">
+      <p class="ct-title">What changed in the July 27, 2026 update</p>
+      <p>The five functional groups and their weightings are <strong>unchanged</strong>. Microsoft flagged <em>minor</em> revisions to <em>traceability and flow of work</em> (Domain 1), <em>automate security and compliance scanning</em> (Domain 4), and <strong>both</strong> instrumentation objectives (Domain 5). In practice this means more emphasis on GitHub-native tooling — GitHub Projects and Issues, GitHub Advanced Security for Azure DevOps, and GitHub insights — rather than new subject areas.</p>
+    </div>
+
+    <div class="callout warn">
+      <p class="ct-title">Disclaimer</p>
+      <p>These notes are an independent study aid for <strong>learning purposes only</strong> and are not affiliated with or endorsed by Microsoft. Microsoft constantly renames and re-scopes products — <strong>always verify every detail against the official Microsoft documentation</strong> linked throughout before relying on it.</p>
+    </div>
+
+  </div>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.6 · Maintain Pipelines — AZ-400</title>
+  <meta name="description" content="AZ-400 3.6: monitoring pipeline health and flaky tests, optimizing pipelines for cost, time, performance and reliability, caching, pipeline concurrency, retention strategy for artifacts and dependencies, and migrating classic pipelines to YAML.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/maintain/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.6 · Maintain Pipelines">
+  <meta property="og:description" content="Pipeline health, flaky tests, optimization, caching, concurrency, retention and classic-to-YAML migration for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/maintain/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.6 · Maintain Pipelines">
+  <meta name="twitter:description" content="Pipeline health, flaky tests, optimization, caching, concurrency, retention and migration.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.6 · Maintain Pipelines","description":"Pipeline health, flaky tests, optimization, caching, concurrency, retention and classic-to-YAML migration for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/maintain/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.6 · Maintain pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/maintain/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="maintain">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.6 · part of 50–55%</div>
+        <h1>Maintain pipelines</h1>
+        <p>Keeping the delivery system itself healthy: measuring pipeline health, hunting flaky tests, making runs cheaper and faster, controlling concurrency, retaining the right artifacts for the right time, and moving off classic pipelines.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="health">Monitoring pipeline health</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Metric</th><th>Signals</th><th>Healthy target</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Pass / success rate</strong></td><td>Pipeline reliability; a broken main build blocks everyone</td><td>&gt; 95%</td></tr>
+            <tr><td><strong>Duration</strong></td><td>Feedback speed; long runs discourage frequent integration</td><td>Trending down</td></tr>
+            <tr><td><strong>Failure rate</strong></td><td>How often runs fail — and whether it is code or infrastructure</td><td>Low and stable</td></tr>
+            <tr><td><strong>Flaky-test rate</strong></td><td>Tests that pass/fail without code change; erode trust</td><td>&lt; 1%</td></tr>
+            <tr><td><strong>Queue / wait time</strong></td><td>Agent starvation — a concurrency problem, not a speed problem</td><td>&lt; 5 min</td></tr>
+            <tr><td><strong>MTTR for a red build</strong></td><td>How fast the team unblocks a broken pipeline</td><td>&lt; 30 min</td></tr>
+            <tr><td><strong>Agent utilisation</strong></td><td>Whether the pool is over/under-provisioned</td><td>Busy but with headroom</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Where to see it:</strong> Azure DevOps <em>Pipelines → Analytics</em> (pass rate, duration, test failures over time), the <em>Pipeline pass rate</em> and <em>Test failures</em> reports, and dashboard widgets. GitHub surfaces workflow run history and, with the <em>Insights</em>/metrics, job-level timing; failures can fan out to alerts (below).</p>
+
+      <h3 id="flaky">Flaky tests</h3>
+      <p>A flaky test produces different results on the same code — the most corrosive pipeline problem, because it trains people to ignore red.</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Common cause</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Race conditions / unawaited async</td><td>Proper <code>await</code>; deterministic synchronisation</td></tr>
+            <tr><td>Order dependency between tests</td><td>Isolate state; no shared mutable fixtures</td></tr>
+            <tr><td>Real clock / time zones</td><td>Inject a clock; freeze time in tests</td></tr>
+            <tr><td>Unseeded randomness</td><td>Fix the random seed</td></tr>
+            <tr><td>External service latency</td><td>Mock it, or add health-checked service containers</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Azure DevOps flaky-test management</p>
+        <p>Configure under <em>Project Settings → Pipelines → Test management → Flaky tests</em>. Detection can be via <strong>on-rerun</strong> (a test that passes on retry after failing) or via a system/custom flaky-bug workflow. You can choose whether flaky results <strong>count against the pipeline pass/fail</strong> — quarantining them keeps CI green while you fix the root cause.</p>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> auto-rerun failed tests (VSTest)</div>
+        <pre class="code"><code>- task: VSTest@3
+  inputs:
+    rerunFailedTests: true
+    rerunMaxAttempts: 3
+    rerunFailedThreshold: 30     <span class="cm"># give up if &gt;30% failed (likely a real break, not flake)</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — retry masks, it doesn't fix</p>
+        <p>Auto-rerun is a stopgap that keeps the pipeline moving, but the AZ-400 "best practice" answer is to <strong>quarantine the flaky test and fix the root cause</strong>. Retrying everything hides real regressions and inflates duration. Order of preference: <strong>fix the cause → quarantine while fixing → retry as a last resort</strong>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="optimize">Optimizing pipelines</h2>
+
+      <h3 id="optimize-time">For time</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Technique</th><th>How it helps</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Parallel jobs / matrix</strong></td><td>Run independent work concurrently — reduce wall-clock time</td></tr>
+            <tr><td><strong>Dependency caching</strong></td><td>Skip re-downloading packages every run</td></tr>
+            <tr><td><strong>Shallow clone</strong> (<code>fetchDepth: 1</code>)</td><td>Fetch only the tip commit</td></tr>
+            <tr><td><strong>Path filters</strong></td><td>Skip runs for irrelevant changes (docs-only)</td></tr>
+            <tr><td><strong>Test Impact Analysis</strong></td><td>Run only tests affected by the change</td></tr>
+            <tr><td><strong>Job/artifact reuse</strong></td><td>Build once, reuse the artifact downstream (don't rebuild per stage)</td></tr>
+            <tr><td><strong>Self-hosted agents</strong></td><td>Warm caches and local Docker layers persist between runs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="caching">Caching</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> Cache@2</div>
+          <pre class="code"><code>- task: Cache@2
+  displayName: Cache NuGet
+  inputs:
+    <span class="cm"># key changes → cache miss → repopulate; restoreKeys give a fallback</span>
+    key: 'nuget | "$(Agent.OS)" | **/packages.lock.json'
+    restoreKeys: |
+      nuget | "$(Agent.OS)"
+    path: '$(NUGET_PACKAGES)'</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> actions/cache</div>
+          <pre class="code"><code>- uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+    restore-keys: |
+      ${{ runner.os }}-npm-
+
+<span class="cm"># Many setup-* actions cache automatically:</span>
+<span class="cm"># - uses: actions/setup-node@v4   with: { cache: npm }</span></code></pre>
+        </div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — cache key hygiene</p>
+        <p>The cache key must include a hash of the <strong>lock file</strong> so a dependency change invalidates the cache; otherwise you serve stale packages and get non-reproducible builds. <code>restoreKeys</code> provide a partial-match fallback so a near-miss still avoids a full cold restore. Never cache <strong>build outputs</strong> you intend to ship — cache <em>inputs</em> (packages), publish <em>outputs</em> as artifacts (<a href="../package-management/#publishing">3.1</a>).</p>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">Caveat — <code>fetchDepth: 1</code> breaks some tools</p>
+        <p>A shallow clone speeds checkout but <strong>hides history</strong>. GitVersion, SonarQube, <code>git blame</code> and anything that walks commits need <strong>full history</strong> (<code>fetchDepth: 0</code> in Azure Pipelines, <code>fetch-depth: 0</code> in <code>actions/checkout</code>). This trade-off is directly examinable.</p>
+      </div>
+
+      <h3 id="optimize-cost">For cost</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Lever</th><th>Saving</th></tr></thead>
+          <tbody>
+            <tr><td>Self-hosted agents for long/frequent builds</td><td>No per-minute charge; only infrastructure cost</td></tr>
+            <tr><td>Right-size the OS image</td><td>Linux is cheapest; avoid macOS unless building for Apple</td></tr>
+            <tr><td>Path/branch filters</td><td>Don't spend minutes on changes that don't need CI</td></tr>
+            <tr><td>Caching + incremental builds</td><td>Fewer minutes per run</td></tr>
+            <tr><td>Tighter retention</td><td>Lower storage cost for runs and artifacts</td></tr>
+            <tr><td>Concurrency limits</td><td>Fewer parallel jobs to purchase</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="optimize-reliability">For reliability</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> timeouts and step retry</div>
+        <pre class="code"><code>jobs:
+  - job: Build
+    timeoutInMinutes: 30           <span class="cm"># fail fast instead of hanging</span>
+    cancelTimeoutInMinutes: 5
+    steps:
+      - script: ./flaky-network-step.sh
+        retryCountOnTaskFailure: 3  <span class="cm"># retry transient infra failures</span></code></pre>
+      </div>
+      <p>Also: idempotent scripts (safe to re-run after a partial failure), health gates before production (<a href="../testing/#gates">3.2</a>), and pinning tool/action versions so a third-party change can't break your build unexpectedly.</p>
+
+      <!-- ============================================================= -->
+      <h2 id="concurrency">Pipeline concurrency</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th></th><th>Azure Pipelines</th><th>GitHub Actions</th></tr></thead>
+          <tbody>
+            <tr><td>Unit of concurrency</td><td><strong>Parallel jobs</strong> purchased per org</td><td>Concurrent jobs per plan; <strong>concurrency groups</strong> in YAML</td></tr>
+            <tr><td>Free tier (private)</td><td>1 hosted (limited minutes) or 1 self-hosted</td><td>Plan-dependent concurrent job limit</td></tr>
+            <tr><td>Serialise a critical path</td><td><code>concurrency</code> in YAML / exclusive-lock check</td><td><code>concurrency:</code> group</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> serialise prod deploys</div>
+          <pre class="code"><code>lockBehavior: sequential   <span class="cm"># with an exclusive-lock check on the environment</span>
+
+<span class="cm"># or a pipeline-level group</span>
+- stage: DeployProd
+  <span class="cm"># the exclusive lock check on 'production' environment</span>
+  <span class="cm"># ensures only one run deploys at a time</span></code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> concurrency group</div>
+          <pre class="code"><code><span class="cm"># PRs: cancel the previous run when a new commit arrives</span>
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+<span class="cm"># Production: let the current deploy FINISH, queue the next</span>
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false</code></pre>
+        </div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — cancel-in-progress by context</p>
+        <p><code>cancel-in-progress: true</code> for <strong>PR/CI</strong> runs (a newer commit makes the old run pointless — saves minutes). <code>cancel-in-progress: false</code> for <strong>production deployments</strong> (never abort a half-finished deploy — queue the next one). Confusing the two either wastes agent time or corrupts a deployment.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Queue time is a concurrency problem</p>
+        <p>If runs sit in a queue, the fix is <strong>more parallel jobs / more agents</strong> (or a self-hosted pool), not a faster build. If each run is slow but starts immediately, the fix is the <a href="#optimize-time">time optimisations</a> above. Diagnose which before answering.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="retention">Retention strategy</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>What</th><th>Default</th><th>Where to configure</th></tr></thead>
+          <tbody>
+            <tr><td>Pipeline runs &amp; artifacts</td><td>30 days</td><td>Org/Project Settings → Pipelines → Settings (min/max days)</td></tr>
+            <tr><td>Classic release retention</td><td>~30–60 days</td><td>Release definition → Retention</td></tr>
+            <tr><td>A specific important run</td><td>—</td><td><strong>Retention lease</strong> — "retain" a run to exempt it from cleanup</td></tr>
+            <tr><td>Azure Artifacts packages</td><td>Keep all</td><td>Feed → Settings → Retention (keep N latest / delete after N days)</td></tr>
+            <tr><td>GitHub Actions artifacts/logs</td><td>90 days (configurable, up to 400 enterprise)</td><td><code>retention-days</code> per upload; repo/org settings</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Artifact</th><th>Sensible retention</th></tr></thead>
+          <tbody>
+            <tr><td>Feature-branch builds</td><td>7–14 days</td></tr>
+            <tr><td>Main-branch builds</td><td>30–90 days</td></tr>
+            <tr><td>Released / tagged builds</td><td>1 year or permanent (retention lease)</td></tr>
+            <tr><td>Production deployment records</td><td>1 year+ (audit)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — retention leases keep a build forever</p>
+        <p>"Keep this specific release build indefinitely for audit/compliance while everything else expires" → set a <strong>retention lease</strong> (retain the run), not a change to the global policy. Retained runs are exempt from the automatic cleanup. Deleting a run also deletes its artifacts and test results, so lease before you need it.</p>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> add a retention lease</div>
+        <pre class="code"><code>az pipelines runs update \
+  --id $(Build.BuildId) \
+  --org https://dev.azure.com/MyOrg --project MyProject \
+  --retention-lease-days 365</code></pre>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="migration">Migrating classic pipelines to YAML</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th></th><th>Classic (UI)</th><th>YAML</th></tr></thead>
+          <tbody>
+            <tr><td>Definition</td><td>Clicked together in the portal</td><td>Code in the repo, versioned with the app</td></tr>
+            <tr><td>Review / audit</td><td>Hard — no diff, no PR</td><td>Full PR review and history</td></tr>
+            <tr><td>Reuse</td><td>Task groups</td><td>Templates, reusable workflows</td></tr>
+            <tr><td>Branching</td><td>One definition for all branches</td><td>Each branch can carry its own pipeline</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ol class="steps">
+        <li><strong>Audit</strong> the classic pipeline — tasks, variables, triggers, service connections, variable groups, environments and gates.</li>
+        <li><strong>Export what you can</strong>: a classic <em>build</em> pipeline has a <em>View YAML</em> option. Classic <em>release</em> pipelines <strong>cannot</strong> be exported — you recreate them as YAML stages.</li>
+        <li><strong>Recreate structure</strong>: build → deployment stages; classic <em>gates</em> and manual interventions become <strong>environment approvals and checks</strong>.</li>
+        <li><strong>Move variables</strong>: classic variables → <code>variables:</code> and variable groups; secrets → variable groups linked to Key Vault.</li>
+        <li><strong>Map deployment groups</strong> → YAML <strong>environments</strong> with VM resources.</li>
+        <li><strong>Run in parallel</strong>: keep the classic pipeline live and compare outputs until the YAML pipeline is trusted.</li>
+        <li><strong>Cut over</strong>: point branch policies at the YAML pipeline, then disable/delete the classic one.</li>
+      </ol>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — classic release gates become environment checks</p>
+        <p>The single hardest part of migration: classic <strong>release pipelines cannot be exported to YAML</strong>, and their pre/post-deployment <strong>gates</strong> and manual interventions have to be re-implemented as <strong>approvals and checks on YAML environments</strong> (see <a href="../testing/#azure-checks">3.2</a>). If a question asks how to migrate a classic release with an Azure Monitor gate, the answer is a <strong>Query Azure Monitor alerts</strong> check on the environment — not a YAML task.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="alerting">Failure alerting (bridge to Domain 5)</h2>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> notify Teams on failure</div>
+          <pre class="code"><code>- script: |
+    curl -X POST "$TEAMS_WEBHOOK" -H 'Content-Type: application/json' \
+      -d "{\"text\":\"❌ $(Build.DefinitionName) failed on $(Build.SourceBranch)\"}"
+  condition: failed()
+  env:
+    TEAMS_WEBHOOK: $(TeamsWebhookUrl)
+
+<span class="cm"># Better: Project Settings → Notifications, or Service hooks → Teams,</span>
+<span class="cm"># filtered to failed builds only.</span></code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> notify on failure</div>
+          <pre class="code"><code>- name: Notify Slack on failure
+  if: failure()
+  uses: slackapi/slack-github-action@v2
+  with:
+    payload: |
+      { "text": "❌ ${{ github.workflow }} failed on ${{ github.ref }}" }
+  env:
+    SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}</code></pre>
+        </div>
+      </div>
+      <p>Alerts on pipeline health belong to the wider instrumentation story in <a href="../../domain-5-instrumentation/#alerts">Domain 5</a> — including wiring an Azure Monitor alert back to <em>trigger</em> a pipeline for auto-remediation.</p>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.6 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Build takes 45 minutes — speed it up</td><td>Cache dependencies, parallelise, shallow clone, TIA</td></tr>
+            <tr><td>Builds queue for 20 minutes before starting</td><td>Buy <strong>more parallel jobs</strong> / add agents (concurrency, not speed)</td></tr>
+            <tr><td>Test fails randomly with no code change</td><td><strong>Flaky test</strong> — quarantine, then fix the root cause</td></tr>
+            <tr><td>Cancel the previous PR build on a new push</td><td><code>cancel-in-progress: true</code> / <code>pr: autoCancel</code></td></tr>
+            <tr><td>Never abort an in-flight production deploy</td><td><code>cancel-in-progress: false</code> / exclusive lock</td></tr>
+            <tr><td>Keep one release build forever for audit</td><td><strong>Retention lease</strong> (retain the run)</td></tr>
+            <tr><td>Delete old feature-branch artifacts automatically</td><td>Retention policy at org/pipeline level</td></tr>
+            <tr><td>Cache keeps serving stale packages</td><td>Include the <strong>lock-file hash</strong> in the cache key</td></tr>
+            <tr><td>GitVersion/SonarQube fails after adding a cache/shallow clone</td><td>Use <strong>full history</strong> (<code>fetchDepth: 0</code>)</td></tr>
+            <tr><td>Migrate a classic <em>release</em> with gates to YAML</td><td>Recreate as YAML stages; gates → <strong>environment checks</strong></td></tr>
+            <tr><td>Alert the team when the pipeline fails</td><td>Notifications / service hooks filtered to <code>failed()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../infrastructure-as-code/"><div class="pg-dir">← Previous</div><div class="pg-title">3.5 · Infrastructure as code</div></a>
+        <a class="next" href="../../domain-4-security/"><div class="pg-dir">Next →</div><div class="pg-title">Domain 4 · Security &amp; compliance</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

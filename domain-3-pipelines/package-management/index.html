@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.1 · Package Management Strategy — AZ-400</title>
+  <meta name="description" content="AZ-400 3.1: Azure Artifacts vs GitHub Packages, feeds and views, upstream sources, package promotion, semantic versioning (SemVer) vs calendar versioning (CalVer), and versioning pipeline artifacts.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/package-management/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.1 · Package Management Strategy">
+  <meta property="og:description" content="Feeds, views, upstream sources, SemVer vs CalVer and artifact versioning for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/package-management/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.1 · Package Management Strategy">
+  <meta name="twitter:description" content="Feeds, views, upstream sources, SemVer vs CalVer and artifact versioning.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.1 · Package Management Strategy","description":"Feeds, views, upstream sources, SemVer vs CalVer and artifact versioning for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/package-management/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.1 · Package management","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/package-management/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="packages">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.1 · part of 50–55%</div>
+        <h1>Design and implement a package management strategy</h1>
+        <p>Where shared code lives, how consumers discover it, how a build is promoted from "just published" to "approved for production", and how you number the things you ship.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="tools">Recommending package management tools</h2>
+
+      <h3 id="azure-artifacts">Azure Artifacts</h3>
+      <p>A universal package registry built into Azure DevOps. A single <strong>feed</strong> can host several package types side by side.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Protocol</th><th>Ecosystem</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><strong>NuGet</strong></td><td>.NET</td><td><code>.nupkg</code></td></tr>
+            <tr><td><strong>npm</strong></td><td>Node.js / JavaScript</td><td>Scoped packages supported</td></tr>
+            <tr><td><strong>Maven</strong></td><td>Java</td><td><code>pom.xml</code> coordinates</td></tr>
+            <tr><td><strong>Python (PyPI)</strong></td><td>Python</td><td>wheels and sdists</td></tr>
+            <tr><td><strong>Cargo</strong></td><td>Rust</td><td>crates</td></tr>
+            <tr><td><strong>Universal Packages</strong></td><td><em>Anything</em></td><td>Versioned blobs of arbitrary files — <span class="pill p-orange">Azure Artifacts only</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Universal Packages</p>
+        <p><strong>Universal Packages are unique to Azure Artifacts.</strong> When a scenario needs to version and distribute something that is not a recognised package format — an ML model, a game asset bundle, a firmware image, a folder of test data — the answer is a <strong>Universal Package</strong>, published with <code>az artifacts universal publish</code>.</p>
+      </div>
+
+      <h3 id="github-packages">GitHub Packages</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Package type</th><th>Registry host</th></tr></thead>
+          <tbody>
+            <tr><td>Container images</td><td><code>ghcr.io</code> <span class="pill p-green">GitHub Container Registry</span></td></tr>
+            <tr><td>npm</td><td><code>npm.pkg.github.com</code></td></tr>
+            <tr><td>NuGet</td><td><code>nuget.pkg.github.com</code></td></tr>
+            <tr><td>Maven / Gradle</td><td><code>maven.pkg.github.com</code></td></tr>
+            <tr><td>RubyGems</td><td><code>rubygems.pkg.github.com</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Packages inherit repository permissions by default, and workflows authenticate with the automatically-provided <code>GITHUB_TOKEN</code> — no secret to manage.</p>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> publish to GitHub Packages with GITHUB_TOKEN</div>
+        <pre class="code"><code>permissions:
+  contents: read
+  packages: write          <span class="cm"># required to publish</span>
+
+steps:
+  - uses: actions/checkout@v4
+
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+      registry-url: https://npm.pkg.github.com
+      scope: '@my-org'
+
+  - run: npm publish
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}</code></pre>
+      </div>
+
+      <h3 id="artifacts-vs-packages">Azure Artifacts vs GitHub Packages</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Capability</th><th>Azure Artifacts</th><th>GitHub Packages</th></tr></thead>
+          <tbody>
+            <tr><td>Scoped to</td><td>Azure DevOps organization or project</td><td>GitHub repository or organization</td></tr>
+            <tr><td><strong>Universal Packages</strong> (arbitrary files)</td><td>✅</td><td>❌</td></tr>
+            <tr><td><strong>Upstream sources</strong> (proxy + cache public registries)</td><td>✅ first-class</td><td>Limited</td></tr>
+            <tr><td><strong>Views</strong> for promotion (@local / @prerelease / @release)</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Container registry</td><td>Use Azure Container Registry (ACR)</td><td>✅ <code>ghcr.io</code></td></tr>
+            <tr><td>Retention policies per feed</td><td>✅</td><td>Limited</td></tr>
+            <tr><td>Free storage tier</td><td>2 GB</td><td>500 MB (private; public packages are free)</td></tr>
+            <tr><td>Best for</td><td>Enterprise, multi-protocol, promotion workflows, mixed source control</td><td>GitHub-native workflows, container-first teams</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the two discriminators</p>
+        <p>If the requirement mentions <strong>promotion through quality stages</strong> or <strong>caching/proxying a public registry</strong>, the answer is <strong>Azure Artifacts</strong> (views and upstream sources). If it mentions <strong>container images in a GitHub-centric workflow</strong>, the answer is <strong>GitHub Container Registry (ghcr.io)</strong>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="feeds">Package feeds and views</h2>
+
+      <h3 id="feed-scope">Feed scope: project vs organization</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Project-scoped feed</th><th>Organization-scoped feed</th></tr></thead>
+          <tbody>
+            <tr><td>Visible to</td><td>One project (inherits project permissions)</td><td>Every project in the organization</td></tr>
+            <tr><td>Use for</td><td>Packages owned and consumed by a single team</td><td>Shared platform/common libraries across teams</td></tr>
+            <tr><td>Recommended default</td><td><span class="pill p-green">Yes</span> — least privilege</td><td>Only for genuinely shared code</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="upstream">Upstream sources</h3>
+      <p>An upstream source makes your feed a <strong>transparent proxy and cache</strong> for a public registry. Consumers point at one URL and get both your packages and public ones.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  D[Developer / build agent] -->|restore| F[Azure Artifacts feed]
+  F -->|"1 · in the feed?"| L[(Local packages)]
+  F -->|"2 · miss → fetch"| U["Upstream sources<br/>nuget.org · npmjs · PyPI · Maven Central"]
+  U -->|"3 · save a copy"| L
+        </div>
+        <div class="mm-cap">On a cache miss the feed fetches from upstream and saves a copy — later restores are served locally.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Benefit</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Availability</strong></td><td>Builds keep working if the public registry is down or a package is unpublished/yanked</td></tr>
+            <tr><td><strong>Auditability</strong></td><td>One place shows every third-party package the organisation actually consumes</td></tr>
+            <tr><td><strong>Performance</strong></td><td>Cached packages restore from a nearby feed</td></tr>
+            <tr><td><strong>Substitution protection</strong></td><td>Once a package name/version is saved locally, upstream cannot silently replace it</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — dependency confusion / substitution attacks</p>
+        <p>If an internal package name also exists on a public registry, a client might resolve the <em>public</em> one. Mitigations the exam expects: use a <strong>single feed with upstream sources</strong> (never mix a private feed and a public registry in the same client config), reserve/prefix your internal package names (e.g. scoped <code>@my-org/</code>), and rely on the feed's saved copy so the version is pinned to what you first consumed.</p>
+      </div>
+
+      <h3 id="views">Feed views and package promotion</h3>
+      <p>Views are <strong>filtered read-only slices</strong> of a single feed. Promoting a package into a view does not copy or move it — it simply becomes visible through that view's URL.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>View</th><th>Contains</th><th>Consumed by</th></tr></thead>
+          <tbody>
+            <tr><td><code>@local</code></td><td>Everything published to the feed, plus saved upstream packages</td><td>The publishing team; CI</td></tr>
+            <tr><td><code>@prerelease</code></td><td>Packages promoted as release candidates</td><td>Test/staging consumers</td></tr>
+            <tr><td><code>@release</code></td><td>Packages approved as stable</td><td>Production consumers</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> publish then promote a Universal Package</div>
+        <pre class="code"><code>az artifacts universal publish \
+  --organization https://dev.azure.com/MyOrg \
+  --project MyProject --feed MyFeed \
+  --name my-package --version 1.4.0 \
+  --path ./dist --description "Release candidate"
+
+<span class="cm"># Promote into the @release view — same package, new visibility</span>
+az artifacts universal update \
+  --organization https://dev.azure.com/MyOrg \
+  --project MyProject --feed MyFeed \
+  --name my-package --version 1.4.0 \
+  --views @release</code></pre>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> consuming a specific view</div>
+        <pre class="code"><code><span class="cm"># A feed view is addressed as  FeedName@ViewName</span>
+- task: NuGetCommand@2
+  displayName: Push to the feed
+  inputs:
+    command: push
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    nuGetFeedType: internal
+    publishVstsFeed: 'MyProject/MyFeed'
+
+<span class="cm"># Production build restores ONLY approved packages</span>
+- task: NuGetAuthenticate@1
+- script: dotnet restore --source "https://pkgs.dev.azure.com/MyOrg/MyProject/_packaging/MyFeed@release/nuget/v3/index.json"</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — views vs multiple feeds</p>
+        <p>"Promote packages through quality stages <strong>without duplicating storage or changing version numbers</strong>" → <strong>views</strong> in one feed. Separate feeds per stage is the wrong answer: it forces you to copy binaries between feeds, which breaks immutability and doubles storage. Also remember that <strong>immutability</strong> applies — once a version is published to a feed you cannot overwrite it; you must publish a new version.</p>
+      </div>
+
+      <h3 id="feed-permissions">Feed permissions</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Role</th><th>Can</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Reader</strong></td><td>List and restore packages</td></tr>
+            <tr><td><strong>Collaborator</strong></td><td>Reader + save packages from upstream sources</td></tr>
+            <tr><td><strong>Contributor</strong></td><td>Collaborator + publish, deprecate and unlist packages</td></tr>
+            <tr><td><strong>Owner</strong></td><td>Contributor + manage permissions, views, upstreams and retention</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Build identities need <strong>Contributor</strong> to publish. A common least-privilege pattern: developers get Reader on <code>@release</code>, CI gets Contributor on the feed.</p>
+
+      <!-- ============================================================= -->
+      <h2 id="versioning">Dependency versioning strategy</h2>
+
+      <h3 id="semver">Semantic versioning (SemVer)</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">spec</span> MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]</div>
+        <pre class="code"><code>   2  .  4  .  1  -  beta.1  +  build.20260721
+   │     │     │       │           │
+   │     │     │       │           └─ build metadata — IGNORED when comparing versions
+   │     │     │       └───────────── pre-release label — LOWER precedence than the release
+   │     │     └─────────────────────  PATCH: backwards-compatible bug fixes
+   │     └───────────────────────────  MINOR: backwards-compatible new functionality
+   └─────────────────────────────────  MAJOR: incompatible / breaking API change
+
+<span class="cm"># Precedence (left is lower):</span>
+1.0.0-alpha &lt; 1.0.0-alpha.1 &lt; 1.0.0-beta &lt; 1.0.0-beta.2 &lt; 1.0.0-rc.1 &lt; 1.0.0 &lt; 1.0.1 &lt; 1.1.0 &lt; 2.0.0</code></pre>
+      </div>
+      <ul>
+        <li>Version <strong>0.y.z</strong> means "initial development — anything may change at any time". Stability is only promised from <strong>1.0.0</strong>.</li>
+        <li>A pre-release version has <strong>lower</strong> precedence than the same version without a label: <code>1.0.0-rc.1 &lt; 1.0.0</code>.</li>
+        <li><strong>Build metadata (<code>+…</code>) is ignored for precedence</strong> — <code>1.0.0+build1</code> and <code>1.0.0+build2</code> are the same version.</li>
+      </ul>
+
+      <h3 id="calver">Calendar versioning (CalVer)</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Pattern</th><th>Example</th><th>Known user</th></tr></thead>
+          <tbody>
+            <tr><td><code>YY.MM</code></td><td><code>26.04</code></td><td>Ubuntu</td></tr>
+            <tr><td><code>YYYY.MM.MICRO</code></td><td><code>2026.07.1</code></td><td>pip / PyPA tooling</td></tr>
+            <tr><td><code>YY.MM.MICRO</code></td><td><code>26.7.0</code></td><td>Black</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — SemVer or CalVer?</p>
+        <p><strong>SemVer</strong> when consumers need to reason about <em>compatibility</em> — libraries, SDKs, anything with a public API. <strong>CalVer</strong> when the meaningful question is <em>"how current is this?"</em> — infrastructure, tooling, distributions, time-boxed releases, or products with no coherent notion of a breaking change. The giveaway phrases are "public API / downstream consumers" (SemVer) versus "monthly release train / date matters" (CalVer).</p>
+      </div>
+
+      <h3 id="ranges">Version ranges and lock files</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">npm</span> package.json</div>
+          <pre class="code"><code>{
+  "dependencies": {
+    "express": "4.18.2",        <span class="cm">// exact — pinned</span>
+    "lodash":  "~4.17.21",      <span class="cm">// ~ patch only  (&gt;=4.17.21 &lt;4.18.0)</span>
+    "axios":   "^1.6.0",        <span class="cm">// ^ minor+patch (&gt;=1.6.0 &lt;2.0.0)</span>
+    "react":   "&gt;=18.0.0 &lt;19"   <span class="cm">// explicit range</span>
+  }
+}</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">NuGet</span> .csproj</div>
+          <pre class="code"><code>&lt;PackageReference Include="Newtonsoft.Json" Version="13.0.3" /&gt;
+&lt;PackageReference Include="Serilog" Version="[3.1.0,4.0.0)" /&gt;
+
+<span class="cm">&lt;!-- Range notation:
+     1.0.0     minimum (NuGet resolves to lowest applicable)
+     [1.0.0]   exact
+     [1.0,2.0) &gt;= 1.0 and &lt; 2.0
+     (,1.0]    &lt;= 1.0
+     *         floating — avoid in production          --&gt;</span></code></pre>
+        </div>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Reproducible builds</p>
+        <p>Always <strong>commit the lock file</strong> (<code>package-lock.json</code>, <code>yarn.lock</code>, <code>pnpm-lock.yaml</code>, <code>packages.lock.json</code>, <code>poetry.lock</code>) and restore with the strict command in CI — <code>npm ci</code> (not <code>npm install</code>) or <code>dotnet restore --locked-mode</code>. Without it, the same commit can produce different binaries on different days. This also matters for pipeline caching keys — see <a href="../maintain/#caching">3.6</a>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="artifact-versioning">Versioning pipeline artifacts</h2>
+
+      <h3 id="build-numbers">Build numbers and counters</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> deriving a SemVer from a counter</div>
+        <pre class="code"><code>variables:
+  Major: 2
+  Minor: 4
+  <span class="cm"># counter(prefix, seed) auto-increments and RESETS when the prefix changes,</span>
+  <span class="cm"># so bumping Minor restarts Patch at 0.</span>
+  Patch: $[counter(format('{0}.{1}', variables['Major'], variables['Minor']), 0)]
+
+<span class="cm"># 'name' sets the run/build number — this becomes $(Build.BuildNumber)</span>
+name: $(Major).$(Minor).$(Patch)
+
+<span class="cm"># Alternative date-based run name:  name: $(Date:yyyyMMdd)$(Rev:.r)   → 20260721.3</span>
+
+steps:
+  - script: echo "Building version $(Build.BuildNumber)"</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Variable</th><th>Is</th></tr></thead>
+          <tbody>
+            <tr><td><code>Build.BuildId</code></td><td>Globally unique, monotonically increasing integer per <strong>organization</strong></td></tr>
+            <tr><td><code>Build.BuildNumber</code></td><td>The formatted run name defined by <code>name:</code> — this is what you version artifacts with</td></tr>
+            <tr><td><code>Build.SourceVersion</code></td><td>The commit SHA being built — the immutable link back to source</td></tr>
+            <tr><td><code>$(Rev:r)</code></td><td>Auto-incrementing revision that resets when the rest of the name changes</td></tr>
+            <tr><td><code>github.run_number</code></td><td>GitHub Actions: run count for this workflow (resets if the workflow is renamed/recreated)</td></tr>
+            <tr><td><code>github.run_id</code></td><td>GitHub Actions: globally unique, stable run identifier</td></tr>
+            <tr><td><code>github.sha</code></td><td>GitHub Actions: the commit SHA</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — BuildId vs BuildNumber</p>
+        <p><code>Build.BuildId</code> is a unique <strong>internal ID</strong>; <code>Build.BuildNumber</code> is the <strong>display name</strong> you control with <code>name:</code>. Version your packages from <code>BuildNumber</code> (or an explicit SemVer), and always stamp the artifact with <code>Build.SourceVersion</code> so any deployed binary can be traced to a commit.</p>
+      </div>
+
+      <h3 id="publishing">Publishing and consuming artifacts</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> artifacts across stages</div>
+          <pre class="code"><code>- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)'
+    artifact: 'drop-$(Build.BuildNumber)'
+    publishLocation: 'pipeline'
+
+<span class="cm"># In a later stage / job</span>
+- task: DownloadPipelineArtifact@2
+  inputs:
+    artifact: 'drop-$(Build.BuildNumber)'
+    path: '$(Pipeline.Workspace)/drop'</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> artifacts across jobs</div>
+          <pre class="code"><code>- uses: actions/upload-artifact@v4
+  with:
+    name: app-${{ github.run_number }}
+    path: ./dist/
+    retention-days: 30      <span class="cm"># max 90 (public) / 400 (enterprise)</span>
+
+<span class="cm"># In a later job (needs: build)</span>
+- uses: actions/download-artifact@v4
+  with:
+    name: app-${{ github.run_number }}
+    path: ./dist</code></pre>
+        </div>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Build once, deploy many</p>
+        <p>The artifact produced by the build stage should be the <strong>exact same binary</strong> promoted to every environment — never rebuild per environment. Environment differences belong in <em>configuration</em> (variable groups, App Configuration, environment secrets), not in separate builds. This principle underpins several deployment questions in <a href="../deployments/">3.4</a>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.1 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Host private NuGet packages for .NET teams</td><td><strong>Azure Artifacts feed</strong></td></tr>
+            <tr><td>Version and distribute arbitrary files (ML model, assets)</td><td><strong>Universal Package</strong> (Azure Artifacts)</td></tr>
+            <tr><td>Share container images in a GitHub workflow</td><td><strong>ghcr.io</strong> (GitHub Container Registry)</td></tr>
+            <tr><td>Builds must survive nuget.org being unavailable</td><td><strong>Upstream source</strong> on the feed (caches a copy)</td></tr>
+            <tr><td>Promote testing → stable without new version numbers</td><td><strong>Feed views</strong> (<code>@prerelease</code> → <code>@release</code>)</td></tr>
+            <tr><td>Production must only restore approved packages</td><td>Point the restore at the <strong><code>@release</code> view URL</strong></td></tr>
+            <tr><td>Prevent a public package shadowing an internal one</td><td>Single feed with <strong>upstream sources</strong> + scoped/reserved names</td></tr>
+            <tr><td>Breaking change to a public library API</td><td>Bump <strong>MAJOR</strong> (SemVer)</td></tr>
+            <tr><td>Tooling released on a monthly train</td><td><strong>CalVer</strong></td></tr>
+            <tr><td>Same commit must always produce the same binaries</td><td>Commit <strong>lock files</strong>; restore with <code>npm ci</code> / locked mode</td></tr>
+            <tr><td>Auto-increment patch, reset when minor changes</td><td><code>$[counter('$(Major).$(Minor)', 0)]</code></td></tr>
+            <tr><td>Trace a deployed binary back to a commit</td><td>Stamp the artifact with <code>Build.SourceVersion</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../"><div class="pg-dir">← Previous</div><div class="pg-title">Domain 3 · Overview</div></a>
+        <a class="next" href="../testing/"><div class="pg-dir">Next →</div><div class="pg-title">3.2 · Testing strategy</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

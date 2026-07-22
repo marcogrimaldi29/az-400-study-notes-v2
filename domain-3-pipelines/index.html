@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain 3 · Build &amp; Release Pipelines — AZ-400</title>
+  <meta name="description" content="AZ-400 Domain 3 hub (50–55% of the exam): package management, testing strategy, pipelines, deployments, infrastructure as code and maintaining pipelines across Azure Pipelines and GitHub Actions.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Domain 3 · Build and Release Pipelines">
+  <meta property="og:description" content="The largest AZ-400 domain, in six parts: packages, testing, pipelines, deployments, IaC and pipeline maintenance.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Domain 3 · Build and Release Pipelines">
+  <meta name="twitter:description" content="Over half the AZ-400 exam: packages, testing, pipelines, deployments, IaC and maintenance.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Domain 3 · Build and Release Pipelines","description":"The largest AZ-400 domain, in six parts: packages, testing, pipelines, deployments, IaC and pipeline maintenance.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="pipelines">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3 · 50–55%</div>
+        <h1>Design and implement build and release pipelines</h1>
+        <p>The heart of AZ-400 — more than half the exam. Six sub-objectives covering how software is packaged, tested, built, deployed, provisioned and kept healthy, across both Azure Pipelines and GitHub Actions.</p>
+      </div>
+
+      <div class="callout exam">
+        <p class="ct-title">Budget your study time here</p>
+        <p>At <strong>50–55%</strong>, this domain is worth as much as the other four combined. If you are short on time, work through these six pages first and treat Domains 1, 2, 4 and 5 as revision. Within Domain 3, <strong>pipelines</strong> and <strong>deployments</strong> attract the most questions.</p>
+      </div>
+
+      <h2 id="sub-objectives">The six sub-objectives</h2>
+      <div class="card-grid">
+        <a class="nav-card compact" href="package-management/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.1</span>
+          <h3>Package management strategy</h3>
+          <p>Azure Artifacts vs GitHub Packages, feeds and views, upstream sources, SemVer vs CalVer, artifact versioning.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+        <a class="nav-card compact" href="testing/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.2</span>
+          <h3>Testing strategy for pipelines</h3>
+          <p>Quality and release gates, the test pyramid, service containers, test agents, results publishing, code coverage.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+        <a class="nav-card compact" href="pipelines/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.3</span>
+          <h3>Design and implement pipelines</h3>
+          <p>Actions vs Pipelines, agents and runners, triggers, YAML structure, parallelism, templates, environments and approvals.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+        <a class="nav-card compact" href="deployments/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.4</span>
+          <h3>Design and implement deployments</h3>
+          <p>Blue-green, canary, ring, rolling, A/B, feature flags, slots, hotfix paths, resiliency and database deployments.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+        <a class="nav-card compact" href="infrastructure-as-code/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.5</span>
+          <h3>Infrastructure as code</h3>
+          <p>Bicep and ARM, deployment modes and what-if, DSC and Machine Configuration, Azure Deployment Environments.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+        <a class="nav-card compact" href="maintain/" style="--accent:var(--d3)">
+          <span class="nc-badge">3.6</span>
+          <h3>Maintain pipelines</h3>
+          <p>Pipeline health and flaky tests, cost/time optimisation, caching, concurrency, retention, classic → YAML migration.</p>
+          <span class="nc-foot">Read →</span>
+        </a>
+      </div>
+
+      <h2 id="big-picture">How the pieces fit together</h2>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  subgraph CI["Continuous integration"]
+    S[Source commit / PR] --> B[Build]
+    B --> T["Test<br/>3.2 unit · integration · coverage"]
+    T --> PK["Package<br/>3.1 artifacts &amp; feeds"]
+  end
+  subgraph CD["Continuous delivery"]
+    PK --> G{"Gates &amp; approvals<br/>3.2 / 3.3"}
+    G --> IAC["Provision infrastructure<br/>3.5 Bicep / ARM"]
+    IAC --> D["Deploy<br/>3.4 blue-green · canary · ring"]
+    D --> M["Monitor &amp; feed back<br/>Domain 5"]
+  end
+  M -.->|"health signals gate the next release"| G
+  D -.->|"3.6 optimise, retain, maintain"| B
+        </div>
+        <div class="mm-cap">The six sub-objectives are stages of one pipeline, not six separate topics — questions frequently cross the boundaries.</div>
+      </div>
+
+      <h2 id="two-toolchains">One exam, two toolchains</h2>
+      <p>Nearly every concept in this domain exists in <strong>both</strong> Azure Pipelines and GitHub Actions under different names. Learn the pairs — a large share of Domain 3 questions are really vocabulary questions.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Concept</th><th>Azure Pipelines</th><th>GitHub Actions</th></tr></thead>
+          <tbody>
+            <tr><td>Definition file</td><td><code>azure-pipelines.yml</code> (anywhere in the repo)</td><td><code>.github/workflows/*.yml</code></td></tr>
+            <tr><td>Top-level unit</td><td>Pipeline → <strong>stages</strong> → jobs → steps</td><td>Workflow → <strong>jobs</strong> → steps (no stages)</td></tr>
+            <tr><td>Compute</td><td><strong>Agent</strong> (Microsoft-hosted or self-hosted), in a <strong>pool</strong></td><td><strong>Runner</strong> (GitHub-hosted or self-hosted), in a <strong>runner group</strong></td></tr>
+            <tr><td>Reusable unit of work</td><td><strong>Task</strong> (<code>- task: X@1</code>)</td><td><strong>Action</strong> (<code>- uses: org/action@v1</code>)</td></tr>
+            <tr><td>Reuse across pipelines</td><td><strong>YAML templates</strong>, task groups (classic)</td><td><strong>Reusable workflows</strong> (<code>workflow_call</code>), composite actions</td></tr>
+            <tr><td>Shared configuration</td><td><strong>Variable groups</strong> (Library), optionally Key Vault-linked</td><td>Org/repo/environment <strong>variables and secrets</strong></td></tr>
+            <tr><td>Deployment target + gating</td><td><strong>Environments</strong> → approvals &amp; checks</td><td><strong>Environments</strong> → protection rules</td></tr>
+            <tr><td>Job ordering</td><td><code>dependsOn</code> + <code>condition</code></td><td><code>needs</code> + <code>if</code></td></tr>
+            <tr><td>Fan-out over a config set</td><td><code>strategy: matrix:</code></td><td><code>strategy: matrix:</code></td></tr>
+            <tr><td>Build outputs</td><td><strong>Pipeline artifacts</strong> (<code>PublishPipelineArtifact@1</code>)</td><td><strong>Artifacts</strong> (<code>actions/upload-artifact</code>)</td></tr>
+            <tr><td>Package registry</td><td><strong>Azure Artifacts</strong></td><td><strong>GitHub Packages</strong> / <code>ghcr.io</code></td></tr>
+            <tr><td>Manual run</td><td>Run pipeline (UI/CLI), <code>parameters:</code></td><td><code>workflow_dispatch:</code> with <code>inputs:</code></td></tr>
+            <tr><td>Secretless Azure auth</td><td>Service connection with <strong>workload identity federation</strong></td><td><code>azure/login</code> with <strong>OIDC</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — stages exist only in Azure Pipelines</p>
+        <p>GitHub Actions has <strong>no stage construct</strong>. Multi-stage behaviour is expressed with <code>jobs</code> plus <code>needs:</code> and per-job <code>environment:</code>. If an answer option offers "add a stage" to a GitHub Actions workflow, it is wrong.</p>
+      </div>
+
+      <h2 id="choosing">Choosing between them</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Choose…</th><th>When the scenario has…</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GitHub Actions</strong></td><td>Code already in GitHub; open-source project; team living in the GitHub ecosystem (Issues, Projects, Dependabot, Advanced Security); wanting the marketplace of community actions</td></tr>
+            <tr><td><strong>Azure Pipelines</strong></td><td>Azure Repos, Bitbucket or <strong>TFVC</strong> as the source; a need for rich release management (stages, gates, deployment groups); existing classic pipelines; enterprise governance across many projects</td></tr>
+            <tr><td><strong>Both together</strong></td><td>Code in GitHub, CD in Azure Pipelines — connect via the <strong>Azure Pipelines GitHub App</strong> so build status appears as a check on the PR</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">TFVC is the tiebreaker</p>
+        <p>GitHub Actions cannot build from <strong>Team Foundation Version Control</strong>. If a legacy TFVC repository appears anywhere in the scenario, the answer is <strong>Azure Pipelines</strong>.</p>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../domain-2-source-control/"><div class="pg-dir">← Previous</div><div class="pg-title">Domain 2 · Source control strategy</div></a>
+        <a class="next" href="package-management/"><div class="pg-dir">Next →</div><div class="pg-title">3.1 · Package management</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

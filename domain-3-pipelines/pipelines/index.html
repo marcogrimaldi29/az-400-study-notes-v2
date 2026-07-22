@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.3 · Design and Implement Pipelines — AZ-400</title>
+  <meta name="description" content="AZ-400 3.3: choosing GitHub Actions or Azure Pipelines, agent and runner infrastructure, GitHub–Azure Pipelines integration, trigger rules, YAML authoring, job execution order and parallelism, reusable templates and variable groups, and YAML environment checks and approvals.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/pipelines/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.3 · Design and Implement Pipelines">
+  <meta property="og:description" content="Agents and runners, triggers, YAML, parallelism, templates, environments and approvals for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/pipelines/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.3 · Design and Implement Pipelines">
+  <meta name="twitter:description" content="Agents and runners, triggers, YAML, parallelism, templates and approvals.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.3 · Design and Implement Pipelines","description":"Agents and runners, triggers, YAML, parallelism, templates, environments and approvals for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/pipelines/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.3 · Design and implement pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/pipelines/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="yaml">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.3 · part of 50–55%</div>
+        <h1>Design and implement pipelines</h1>
+        <p>The single densest sub-objective in the exam: which automation platform, what compute runs the work, what makes it start, how the YAML is structured, how work runs in parallel, and how you avoid writing the same pipeline nine times.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="choosing">Selecting a deployment automation solution</h2>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TD
+  A{Where does the source live?} -->|TFVC| P[Azure Pipelines<br/>only option]
+  A -->|Azure Repos / Bitbucket| P
+  A -->|GitHub| B{What matters most?}
+  B -->|GitHub-native ecosystem<br/>Dependabot · GHAS · Projects| G[GitHub Actions]
+  B -->|Rich release management<br/>stages · gates · deployment groups| H[Azure Pipelines<br/>via GitHub App]
+  B -->|Open source project| G
+        </div>
+        <div class="mm-cap">Source control location narrows the choice; the rest is about which release-management model you need.</div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the three decisive facts</p>
+        <p><strong>1)</strong> GitHub Actions cannot build from <strong>TFVC</strong> — a legacy TFVC repo forces Azure Pipelines. <strong>2)</strong> Azure Pipelines can build from GitHub, but not the reverse. <strong>3)</strong> Only Azure Pipelines has <strong>stages</strong>, <strong>classic release gates</strong> and <strong>deployment groups</strong>. Everything else is largely preference.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="compute">Agent and runner infrastructure</h2>
+
+      <h3 id="hosted">Microsoft-hosted agents / GitHub-hosted runners</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th></th><th>Hosted</th><th>Self-hosted</th></tr></thead>
+          <tbody>
+            <tr><td>Maintenance</td><td>None — fresh VM per job</td><td>You patch, update and monitor it</td></tr>
+            <tr><td>State between runs</td><td><strong>None</strong> — clean image every time</td><td>Persists — caches, Docker layers, tool installs</td></tr>
+            <tr><td>Private network access</td><td>No (public internet only)</td><td><span class="pill p-green">Yes</span> — the decisive advantage</td></tr>
+            <tr><td>Custom software / licensed tools</td><td>Only what's in the image</td><td>Anything you install</td></tr>
+            <tr><td>Cost model</td><td>Per-minute / parallel job purchase</td><td>Infrastructure + management effort</td></tr>
+            <tr><td>Best for</td><td>Short, standard, bursty builds</td><td>Long or frequent builds, private resources, compliance</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Common image label</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>ubuntu-latest</code></td><td>Cheapest and fastest; required for Linux containers and service containers</td></tr>
+            <tr><td><code>windows-latest</code></td><td>Windows Server with VS Build Tools; ~2× the minute cost on GitHub</td></tr>
+            <tr><td><code>macos-latest</code></td><td>Xcode; ~10× the minute cost on GitHub — use only for Apple builds</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — when the answer is "self-hosted"</p>
+        <p>Any scenario mentioning <strong>on-premises resources, a private VNet, a private SQL Server, a licensed proprietary tool, data that may not leave the network, or "the build takes 40 minutes mostly downloading dependencies"</strong> resolves to a <strong>self-hosted agent/runner</strong>. Hosted agents cannot reach private endpoints and start from a clean image every time.</p>
+      </div>
+
+      <h3 id="self-hosted">Deploying self-hosted agents and runners</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">bash</span> Azure Pipelines self-hosted agent</div>
+        <pre class="code"><code>mkdir myagent &amp;&amp; cd myagent
+tar zxvf ~/Downloads/vsts-agent-linux-x64-*.tar.gz
+
+<span class="cm"># Configure. Prefer a service principal / managed identity over a PAT where supported.</span>
+./config.sh --unattended \
+  --url https://dev.azure.com/MyOrg \
+  --auth pat --token "$AZP_TOKEN" \
+  --pool MyLinuxPool \
+  --agent "$(hostname)" \
+  --acceptTeeEula
+
+sudo ./svc.sh install &amp;&amp; sudo ./svc.sh start   <span class="cm"># run as a service</span></code></pre>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">yaml</span> targeting agents by capability</div>
+        <pre class="code"><code>pool:
+  name: MyLinuxPool          <span class="cm"># self-hosted pool</span>
+  demands:
+    - Agent.OS -equals Linux
+    - HasDocker               <span class="cm"># custom capability set on the agent</span>
+    - java -equals 21</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Scaling approach</th><th>Platform</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Azure VM Scale Set agents</strong></td><td>Azure Pipelines</td><td>Elastic self-hosted pool that Azure DevOps scales for you</td></tr>
+            <tr><td><strong>Container jobs</strong></td><td>Both</td><td>Run steps inside a specified image for a reproducible toolchain</td></tr>
+            <tr><td><strong>Actions Runner Controller (ARC)</strong></td><td>GitHub</td><td>Kubernetes-based ephemeral runners that autoscale to zero</td></tr>
+            <tr><td><strong>Larger runners</strong></td><td>GitHub</td><td>More vCPU/RAM, and <strong>static IP ranges</strong> for firewall allow-listing</td></tr>
+            <tr><td><strong>Runner groups</strong></td><td>GitHub</td><td>Restrict which repos/workflows may use sensitive runners</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">Never use self-hosted runners on public repositories</p>
+        <p>A fork can open a PR that executes arbitrary code on your runner, and self-hosted runners persist state between jobs. GitHub explicitly recommends self-hosted runners only for <strong>private</strong> repositories; where they must be used, make them <strong>ephemeral</strong> (destroyed after each job) and place them in a restricted runner group.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Parallel jobs</p>
+        <p>Azure DevOps bills concurrency as <strong>parallel jobs</strong>: private projects get 1 free Microsoft-hosted parallel job with limited monthly minutes (self-hosted gets 1 free), and public projects get 10 free. Buying more parallelism — not a faster agent — is the fix for "builds queue for 20 minutes". See <a href="../maintain/#concurrency">3.6</a>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="github-integration">Integrating GitHub repositories with Azure Pipelines</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Connection type</th><th>How it authenticates</th><th>Recommended?</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Azure Pipelines GitHub App</strong></td><td>App installation with scoped repo permissions; posts checks natively</td><td><span class="pill p-green">Yes</span> — least privilege, no user token</td></tr>
+            <tr><td><strong>OAuth</strong></td><td>Acts as the authorising user's account</td><td>Fallback; breaks if that user leaves</td></tr>
+            <tr><td><strong>Personal access token</strong></td><td>A stored PAT</td><td>Last resort; rotation burden</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> PR validation for a GitHub repo</div>
+        <pre class="code"><code>pr:
+  branches:
+    include: [main, 'release/*']
+  paths:
+    exclude: ['docs/*', '**/*.md']
+  drafts: false          <span class="cm"># don't burn agent minutes on draft PRs</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — GitHub PR triggers ignore the YAML branch filter for the target</p>
+        <p>For <strong>GitHub</strong> repos, Azure Pipelines PR triggers are driven by the GitHub App/branch protection, and <strong>comment triggers</strong> (<code>/azp run</code>) can be required for PRs from forks. Also, <strong>secrets are not exposed to fork PR builds</strong> by default — a scenario about "a fork PR build fails because it can't read a secret" is working as designed, and the answer is to <em>not</em> loosen it.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="triggers">Pipeline trigger rules</h2>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> triggers</div>
+          <pre class="code"><code><span class="cm"># CI trigger</span>
+trigger:
+  batch: true            <span class="cm"># queue changes while a run is in progress</span>
+  branches:
+    include: [main, 'release/*']
+    exclude: ['experimental/*']
+  paths:
+    include: ['src/*']
+    exclude: ['docs/*', '**/*.md']
+  tags:
+    include: ['v*']
+
+<span class="cm"># trigger: none   → disable CI entirely</span>
+
+pr:
+  branches: { include: [main] }
+  autoCancel: true       <span class="cm"># cancel older runs on a new push</span>
+
+schedules:
+  - cron: '0 2 * * 1-5'  <span class="cm"># 02:00 UTC, Mon–Fri</span>
+    displayName: Nightly
+    branches: { include: [main] }
+    always: true         <span class="cm"># run even with no code changes</span>
+
+<span class="cm"># Pipeline-completion trigger</span>
+resources:
+  pipelines:
+    - pipeline: buildArtifacts
+      source: 'MyApp-CI'
+      trigger:
+        branches: { include: [main] }</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> events</div>
+          <pre class="code"><code>on:
+  push:
+    branches: [main, 'release/**']
+    paths-ignore: ['docs/**', '**/*.md']
+    tags: ['v*']
+
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  schedule:
+    - cron: '0 2 * * 1-5'      <span class="cm"># always UTC</span>
+
+  workflow_dispatch:            <span class="cm"># manual, with inputs</span>
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+
+  workflow_call:                <span class="cm"># reusable workflow</span>
+  repository_dispatch:          <span class="cm"># external API trigger</span>
+    types: [deploy-prod]
+
+  workflow_run:                 <span class="cm"># after another workflow finishes</span>
+    workflows: ['CI']
+    types: [completed]</code></pre>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Requirement</th><th>Azure Pipelines</th><th>GitHub Actions</th></tr></thead>
+          <tbody>
+            <tr><td>Manual run with parameters</td><td><code>parameters:</code> + queue-time UI</td><td><code>workflow_dispatch:</code> with <code>inputs:</code></td></tr>
+            <tr><td>Trigger from an external system</td><td>REST API / webhook resource</td><td><code>repository_dispatch</code></td></tr>
+            <tr><td>Chain after another pipeline</td><td><code>resources: pipelines:</code> trigger</td><td><code>workflow_run</code></td></tr>
+            <tr><td>Skip docs-only changes</td><td><code>paths: exclude:</code></td><td><code>paths-ignore:</code></td></tr>
+            <tr><td>Run nightly regardless of changes</td><td><code>schedules:</code> + <code>always: true</code></td><td><code>schedule:</code> (always runs)</td></tr>
+            <tr><td>Cancel superseded PR runs</td><td><code>pr: autoCancel: true</code></td><td><code>concurrency: cancel-in-progress: true</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveats — three trigger traps</p>
+        <p><strong>1)</strong> <code>cron</code> is <strong>always UTC</strong> in both platforms — a "9 am local" requirement needs the UTC offset, and daylight saving will shift it. <strong>2)</strong> Azure Pipelines <code>schedules:</code> without <code>always: true</code> only runs if the source changed since the last scheduled run. <strong>3)</strong> GitHub disables scheduled workflows in repositories with <strong>no activity for 60 days</strong>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="yaml">Developing pipelines with YAML</h2>
+
+      <h3 id="hierarchy">The object hierarchy</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  subgraph AP["Azure Pipelines"]
+    P1[Pipeline] --> S1[Stage]
+    S1 --> J1["Job / deployment job"]
+    J1 --> T1[Step: task or script]
+  end
+  subgraph GA["GitHub Actions"]
+    W1[Workflow] --> JJ["Job"]
+    JJ --> TT[Step: uses or run]
+  end
+        </div>
+        <div class="mm-cap">Azure Pipelines has an extra level — the stage. Jobs in both platforms run on separate agents/runners by default.</div>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> a complete multi-stage pipeline</div>
+        <pre class="code"><code>name: $(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches: { include: [main] }
+
+variables:
+  - name: buildConfiguration
+    value: Release
+  - group: 'Shared-Settings'          <span class="cm"># variable group from Library</span>
+  - template: vars/common.yml         <span class="cm"># variables from a template file</span>
+
+stages:
+  - stage: Build
+    displayName: Build and test
+    jobs:
+      - job: BuildJob
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - checkout: self
+            fetchDepth: 0             <span class="cm"># full history: needed by GitVersion / SonarQube</span>
+
+          - template: templates/build-steps.yml
+            parameters:
+              buildConfiguration: $(buildConfiguration)
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)'
+              artifact: drop
+
+  - stage: DeployStaging
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployStaging     <span class="cm"># a DEPLOYMENT job, not a plain job</span>
+        environment: staging
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+                - script: ./deploy.sh $(Pipeline.Workspace)/drop
+
+  - stage: DeployProd
+    dependsOn: DeployStaging
+    jobs:
+      - deployment: DeployProd
+        environment: production        <span class="cm"># approvals/checks configured on the environment</span>
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: ./deploy.sh</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — <code>deployment:</code> vs <code>job:</code></p>
+        <p>A <strong>deployment job</strong> (<code>- deployment:</code>) is what binds to an <code>environment:</code>, records deployment history, exposes strategies (<code>runOnce</code>, <code>rolling</code>, <code>canary</code>) with lifecycle hooks, and <strong>automatically downloads the current pipeline's artifacts</strong>. A plain <code>- job:</code> does none of that. If the requirement mentions approvals, deployment history or a rollout strategy, it must be a <strong>deployment job</strong>.</p>
+      </div>
+
+      <h3 id="variables">Variables, parameters and expressions</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Syntax</th><th>Evaluated</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td><code>${{ }}</code> — compile time</td><td>When the YAML is parsed, before the run starts</td><td><code>parameters</code>, conditional <em>structure</em> (adding/removing steps), template logic</td></tr>
+            <tr><td><code>$[ ]</code> — runtime expression</td><td>At the start of the stage/job</td><td><code>counter()</code>, <code>dependencies.*</code> outputs, conditions on prior results</td></tr>
+            <tr><td><code>$( )</code> — macro</td><td>Just before each step executes</td><td>Everyday variable substitution inside step inputs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — parameters vs variables</p>
+        <p><strong>Parameters</strong> are typed, are resolved at <strong>compile time</strong>, and can change the <em>shape</em> of the pipeline (add a stage, drop a step). <strong>Variables</strong> are always strings and are resolved at runtime — they can change values but not structure. "Let the user pick which environments get a stage" → <strong>parameters</strong>. "Pass a connection string to a task" → <strong>variable</strong>.</p>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">yaml</span> passing an output between jobs</div>
+        <pre class="code"><code>jobs:
+  - job: Setup
+    steps:
+      - script: echo "##vso[task.setvariable variable=version;isOutput=true]1.4.2"
+        name: setVar                 <span class="cm"># the step NAME is required to reference the output</span>
+
+  - job: Use
+    dependsOn: Setup
+    variables:
+      ver: $[ dependencies.Setup.outputs['setVar.version'] ]
+    steps:
+      - script: echo "Building $(ver)"</code></pre>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> the same idea</div>
+        <pre class="code"><code>jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.value }}
+    steps:
+      - id: v
+        run: echo "value=1.4.2" &gt;&gt; "$GITHUB_OUTPUT"
+
+  use:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Building ${{ needs.setup.outputs.version }}"</code></pre>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="parallelism">Job execution order, parallelism and multi-stage</h2>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  T[Trigger] --> B[Build]
+  B --> L[Test · Linux]
+  B --> W[Test · Windows]
+  B --> M[Test · macOS]
+  L --> A[Publish results]
+  W --> A
+  M --> A
+  A --> D[Deploy]
+        </div>
+        <div class="mm-cap">Fan-out / fan-in: three test jobs run concurrently, then one aggregation job depends on all three.</div>
+      </div>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> dependsOn + condition</div>
+          <pre class="code"><code>jobs:
+  - job: TestLinux
+    steps: [ { script: dotnet test } ]
+  - job: TestWindows
+    steps: [ { script: dotnet test } ]
+
+  - job: Publish
+    dependsOn: [TestLinux, TestWindows]
+    condition: always()      <span class="cm"># run even if a test job failed</span>
+    steps:
+      - script: echo "aggregate"
+
+<span class="cm"># dependsOn: []  → start immediately, ignore implicit ordering</span></code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> needs + if</div>
+          <pre class="code"><code>jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps: [ { run: npm test } ]
+  test-windows:
+    runs-on: windows-latest
+    steps: [ { run: npm test } ]
+
+  publish:
+    needs: [test-linux, test-windows]
+    if: always()
+    runs-on: ubuntu-latest
+    steps: [ { run: echo aggregate } ]</code></pre>
+        </div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — default ordering differs by level</p>
+        <p>In Azure Pipelines, <strong>stages</strong> run sequentially by default (each implicitly depends on the previous), while <strong>jobs within a stage run in parallel</strong> by default. To make stages parallel, set <code>dependsOn: []</code>. In GitHub Actions, <strong>all jobs run in parallel</strong> unless linked with <code>needs:</code>. Getting this backwards is a common mistake.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Conditions cheat sheet</p>
+        <p>Azure Pipelines: <code>succeeded()</code> (default), <code>succeededOrFailed()</code>, <code>failed()</code>, <code>always()</code>, <code>canceled()</code>, and expressions like <code>and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))</code>. GitHub Actions: <code>success()</code> (default), <code>failure()</code>, <code>always()</code>, <code>cancelled()</code> inside <code>if:</code>. Note <code>always()</code> also runs on cancellation — use <code>succeededOrFailed()</code>/<code>!cancelled()</code> when you do not want that.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="reuse">Reusable pipeline elements</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Mechanism</th><th>Platform</th><th>Reuses</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Steps template</strong></td><td>Azure Pipelines</td><td>A sequence of steps, inserted into a job</td></tr>
+            <tr><td><strong>Jobs / stages template</strong></td><td>Azure Pipelines</td><td>Whole jobs or stages</td></tr>
+            <tr><td><strong>Variables template</strong></td><td>Azure Pipelines</td><td>A block of variables</td></tr>
+            <tr><td><strong><code>extends</code> template</strong></td><td>Azure Pipelines</td><td>The <em>entire</em> pipeline shape — the governance mechanism</td></tr>
+            <tr><td><strong>Task group</strong></td><td>Azure Pipelines (classic only)</td><td>A reusable set of tasks in the UI; becomes a template on migration</td></tr>
+            <tr><td><strong>Variable group</strong></td><td>Azure Pipelines</td><td>Shared values/secrets, optionally Key Vault-linked</td></tr>
+            <tr><td><strong>Reusable workflow</strong></td><td>GitHub Actions</td><td>A whole workflow called with <code>uses:</code> at job level</td></tr>
+            <tr><td><strong>Composite action</strong></td><td>GitHub Actions</td><td>A sequence of steps bundled as one <code>uses:</code> step</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="templates">Azure Pipelines templates</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">template</span> templates/build-steps.yml</div>
+          <pre class="code"><code>parameters:
+  - name: buildConfiguration
+    type: string
+    default: Release
+  - name: runTests
+    type: boolean
+    default: true
+
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs: { command: restore }
+
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      command: build
+      arguments: '-c ${{ parameters.buildConfiguration }} --no-restore'
+
+  <span class="cm"># Compile-time conditional: the step does not EXIST when false</span>
+  - ${{ if eq(parameters.runTests, true) }}:
+    - task: DotNetCoreCLI@2
+      displayName: Test
+      inputs: { command: test, arguments: '--no-build' }</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">consumer</span> using the template</div>
+          <pre class="code"><code>steps:
+  - template: templates/build-steps.yml
+    parameters:
+      buildConfiguration: Debug
+      runTests: false
+
+<span class="cm"># From ANOTHER repository:</span>
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Platform/pipeline-templates
+      ref: refs/tags/v2.1.0     <span class="cm"># pin the version!</span>
+
+steps:
+  - template: build-steps.yml@templates</code></pre>
+        </div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — <code>extends</code> is how you enforce, <code>template</code> is how you share</p>
+        <p>An <code>extends</code> template <strong>owns the whole pipeline</strong> and can restrict what the consuming pipeline is allowed to do (<code>stepList</code> parameters, allowed tasks). Combined with the <strong>required template check</strong> on an environment (see <a href="../testing/#azure-checks">3.2</a>), it guarantees that every production deployment runs your mandated steps. A plain <code>- template:</code> insertion is opt-in and can simply be omitted.</p>
+      </div>
+
+      <h3 id="reusable-workflows">GitHub reusable workflows and composite actions</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">reusable</span> .github/workflows/reusable-build.yml</div>
+          <pre class="code"><code>on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    outputs:
+      artifact-name:
+        value: ${{ jobs.build.outputs.name }}
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.pack.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pack
+        run: echo "name=app-${{ github.run_number }}" &gt;&gt; "$GITHUB_OUTPUT"</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">caller</span> calling it</div>
+          <pre class="code"><code>jobs:
+  call-build:
+    <span class="cm"># uses: at JOB level (not a step) — this is a reusable workflow</span>
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      environment: production
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    <span class="cm"># or:  secrets: inherit</span>
+
+  deploy:
+    needs: call-build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ needs.call-build.outputs.artifact-name }}"</code></pre>
+        </div>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Reusable workflow vs composite action</p>
+        <p>A <strong>reusable workflow</strong> is called at <strong>job</strong> level, brings its own jobs and runners, and can target environments. A <strong>composite action</strong> is called at <strong>step</strong> level and runs inside the caller's job on the caller's runner. "Share a set of steps used inside many jobs" → <strong>composite action</strong>. "Share an entire build-and-publish job across repos" → <strong>reusable workflow</strong>.</p>
+      </div>
+
+      <h3 id="variable-groups">Variable groups and Key Vault</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> variable group linked to Key Vault</div>
+        <pre class="code"><code>variables:
+  - group: 'Prod-KeyVault-Linked'     <span class="cm"># Library → Variable group → Link secrets from Key Vault</span>
+  - name: region
+    value: uksouth
+
+steps:
+  - script: ./deploy.sh
+    env:
+      DB_PASSWORD: $(SqlAdminPassword)   <span class="cm"># resolved from Key Vault at runtime</span></code></pre>
+      </div>
+      <p>Alternatively fetch secrets inline with the <code>AzureKeyVault@2</code> task — see <a href="../../domain-4-security/#key-vault">Domain 4</a>. Variable groups can be scoped to specific pipelines and require <strong>pipeline permissions</strong> before first use.</p>
+
+      <!-- ============================================================= -->
+      <h2 id="environments">Checks and approvals with YAML environments</h2>
+      <p>An <strong>environment</strong> is a named deployment target that provides: deployment history, resource traceability (Kubernetes/VM resources), and — critically — the place where <strong>approvals and checks</strong> attach. Full check list in <a href="../testing/#azure-checks">3.2</a>.</p>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> environment with a resource</div>
+        <pre class="code"><code>- stage: Production
+  jobs:
+    - deployment: DeployProd
+      displayName: Deploy to production
+      environment:
+        name: production
+        resourceType: Kubernetes      <span class="cm"># or VirtualMachine</span>
+        resourceName: prod-cluster
+      strategy:
+        runOnce:
+          preDeploy:
+            steps: [ { script: ./precheck.sh } ]
+          deploy:
+            steps: [ { script: ./deploy.sh } ]
+          routeTraffic:
+            steps: [ { script: ./route.sh } ]
+          postRouteTraffic:
+            steps: [ { script: ./smoke-test.sh } ]
+          on:
+            failure:
+              steps: [ { script: ./rollback.sh } ]
+            success:
+              steps: [ { script: ./cleanup.sh } ]</code></pre>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Lifecycle hooks are the rollback mechanism</p>
+        <p><code>preDeploy</code> → <code>deploy</code> → <code>routeTraffic</code> → <code>postRouteTraffic</code> → <code>on: success | failure</code>. Putting smoke tests in <code>postRouteTraffic</code> and the undo in <code>on: failure</code> is how you express automatic rollback declaratively — see <a href="../deployments/#resiliency">3.4</a>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.3 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Source is in TFVC</td><td><strong>Azure Pipelines</strong> (Actions cannot build TFVC)</td></tr>
+            <tr><td>Build must reach an on-prem SQL Server</td><td><strong>Self-hosted agent</strong> in that network</td></tr>
+            <tr><td>Bursty Kubernetes-based runners that scale to zero</td><td><strong>Actions Runner Controller (ARC)</strong></td></tr>
+            <tr><td>Allow-list CI egress IPs on a firewall</td><td>GitHub <strong>larger runners</strong> (static IPs) or self-hosted</td></tr>
+            <tr><td>Connect a GitHub repo to Azure Pipelines securely</td><td><strong>Azure Pipelines GitHub App</strong></td></tr>
+            <tr><td>Nightly build even with no commits</td><td><code>schedules:</code> + <code>always: true</code></td></tr>
+            <tr><td>Don't build on docs-only commits</td><td><code>paths: exclude:</code> / <code>paths-ignore:</code></td></tr>
+            <tr><td>Manual run where the user picks the environment</td><td><code>workflow_dispatch</code> inputs / pipeline <code>parameters</code></td></tr>
+            <tr><td>Let a user add or remove a whole stage at queue time</td><td><strong>Parameters</strong> + <code>${{ if }}</code> (compile time)</td></tr>
+            <tr><td>Run three OS test jobs at once</td><td><code>strategy: matrix</code></td></tr>
+            <tr><td>Aggregate job must run even if tests failed</td><td><code>dependsOn</code> + <code>condition: always()</code> / <code>if: always()</code></td></tr>
+            <tr><td>Two stages should run at the same time</td><td><code>dependsOn: []</code> on the second stage</td></tr>
+            <tr><td>Share steps across many pipelines</td><td><strong>YAML template</strong> / <strong>composite action</strong></td></tr>
+            <tr><td>Share a whole build job across repos</td><td><strong>Reusable workflow</strong> (<code>workflow_call</code>)</td></tr>
+            <tr><td>Force every prod pipeline to run a security scan</td><td><code>extends</code> template + <strong>required template check</strong></td></tr>
+            <tr><td>Approval before production in a YAML pipeline</td><td>Approval configured on the <strong>environment</strong>; use a <code>deployment</code> job</td></tr>
+            <tr><td>Pipeline needs secrets from Key Vault</td><td><strong>Variable group linked to Key Vault</strong> or <code>AzureKeyVault@2</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../testing/"><div class="pg-dir">← Previous</div><div class="pg-title">3.2 · Testing strategy</div></a>
+        <a class="next" href="../deployments/"><div class="pg-dir">Next →</div><div class="pg-title">3.4 · Deployments</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

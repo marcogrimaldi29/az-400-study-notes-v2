@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.4 · Design and Implement Deployments — AZ-400</title>
+  <meta name="description" content="AZ-400 3.4: blue-green, canary, ring, rolling and A/B deployment strategies, feature flags with Azure App Configuration, deployment slots, dependency ordering, hotfix paths, resiliency and rollback, container/binary/script deployment, and database deployment tasks.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/deployments/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.4 · Design and Implement Deployments">
+  <meta property="og:description" content="Deployment strategies, feature flags, slots, hotfix paths, resiliency and database deployments for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/deployments/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.4 · Design and Implement Deployments">
+  <meta name="twitter:description" content="Blue-green, canary, ring, feature flags, slots and database deployments.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.4 · Design and Implement Deployments","description":"Deployment strategies, feature flags, slots, hotfix paths, resiliency and database deployments for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/deployments/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.4 · Deployments","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/deployments/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="deployments">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.4 · part of 50–55%</div>
+        <h1>Design and implement deployments</h1>
+        <p>Getting new code in front of users without breaking them: which rollout pattern, how to keep the lights on during the change, how to get back if it goes wrong, and what to do about the database.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="strategies">Deployment strategies</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Strategy</th><th>Downtime</th><th>Rollback</th><th>Infra cost</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Recreate</strong></td><td><span class="pill p-red">Yes</span></td><td>Slow — redeploy old version</td><td>1×</td><td>Dev/test only</td></tr>
+            <tr><td><strong>Rolling</strong></td><td>No</td><td>Medium — roll back instance by instance</td><td>1× (+1 surge)</td><td>Stateless services, the common default</td></tr>
+            <tr><td><strong>Blue-green</strong></td><td>No</td><td><span class="pill p-green">Instant</span> — swap back</td><td><strong>2×</strong> during the release</td><td>Critical apps needing a fast, certain rollback</td></tr>
+            <tr><td><strong>Canary</strong></td><td>No</td><td>Fast — shift traffic back</td><td>1× + small canary</td><td>High-traffic apps where real traffic is the test</td></tr>
+            <tr><td><strong>Ring / progressive exposure</strong></td><td>No</td><td>Fast — stop promoting</td><td>1×</td><td>Large, segmentable user bases</td></tr>
+            <tr><td><strong>A/B testing</strong></td><td>No</td><td>Fast</td><td>1× + variant</td><td><em>Measuring a hypothesis</em>, not derisking a release</td></tr>
+            <tr><td><strong>Feature flags</strong></td><td>No</td><td><span class="pill p-green">Instant</span> — no redeploy</td><td>1×</td><td>Decoupling deploy from release; combines with all of the above</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — canary vs A/B testing</p>
+        <p>They look identical (both send a subset of traffic to a new version) but the <strong>intent differs</strong>, and the exam tests exactly that. <strong>Canary = risk reduction</strong>: you watch <em>technical</em> signals (error rate, latency) and either promote or roll back. <strong>A/B testing = experimentation</strong>: you compare <em>business</em> metrics (conversion, click-through) between two working variants to decide which is better. If the scenario mentions statistical significance or conversion rate, it is <strong>A/B</strong>; if it mentions error rate or latency, it is <strong>canary</strong>.</p>
+      </div>
+
+      <h3 id="blue-green">Blue-green deployment</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  U[Users] --> R{Router / slot swap}
+  R -->|100% before| B["BLUE · v1.0<br/>live"]
+  R -.->|0% before| G["GREEN · v1.1<br/>deploy &amp; warm up here"]
+  R -.->|100% after swap| G
+  R -.->|0% after swap| B
+  G -->|"problem? swap back instantly"| B
+        </div>
+        <div class="mm-cap">Two identical environments; the router decides which is live. Rollback is another swap.</div>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure cli</span> blue-green with App Service deployment slots</div>
+        <pre class="code"><code><span class="cm"># 1 · Deploy to the staging slot (green) — production traffic unaffected</span>
+az webapp deploy --resource-group myRG --name myApp --slot staging \
+  --src-path ./package.zip --type zip
+
+<span class="cm"># 2 · Warm up and smoke-test the staging slot</span>
+curl -fsS https://myapp-staging.azurewebsites.net/health
+
+<span class="cm"># 3 · Swap — Azure warms the target first, so this is near-zero downtime</span>
+az webapp deployment slot swap --resource-group myRG --name myApp \
+  --slot staging --target-slot production
+
+<span class="cm"># 4 · Rollback = swap again (the old version is now sitting in staging)</span>
+az webapp deployment slot swap --resource-group myRG --name myApp \
+  --slot staging --target-slot production</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — slot settings ("sticky" settings)</p>
+        <p>By default app settings and connection strings <strong>swap with the slot</strong>. Mark a setting as a <strong>deployment slot setting</strong> and it <strong>stays with the slot</strong> instead — this is how you keep the staging slot pointed at a staging database while production keeps its own. The classic exam symptom: "after the swap, production is writing to the test database" → the connection string was <em>not</em> marked as a slot setting.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Auto swap and swap with preview</p>
+        <p><strong>Auto swap</strong> swaps a slot into production automatically whenever a deployment to it succeeds (good for staging, dangerous for production). <strong>Swap with preview</strong> (multi-phase) applies production's slot settings to the staging slot first so you can validate against production configuration <em>before</em> completing the swap. "VIP swap" is the legacy Cloud Services equivalent.</p>
+      </div>
+
+      <h3 id="canary">Canary deployment</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  S[Deploy v1.1 to a<br/>small slice] --> A[5% traffic]
+  A --> M{Health OK?<br/>error rate · latency}
+  M -->|Yes| B[25%]
+  B --> C[50%]
+  C --> D[100% · retire v1.0]
+  M -->|No| R[Shift traffic back<br/>to v1.0]
+        </div>
+        <div class="mm-cap">Each promotion step is gated on observed health — automate the gate, not just the traffic shift.</div>
+      </div>
+      <p>Traffic-splitting mechanisms in Azure:</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Mechanism</th><th>Splits by</th></tr></thead>
+          <tbody>
+            <tr><td><strong>App Service slot traffic routing</strong> (<code>--distribution</code>)</td><td>Percentage of requests to a slot; users are pinned with a cookie</td></tr>
+            <tr><td><strong>Azure Front Door / Traffic Manager</strong></td><td>Weighted routing across endpoints or regions</td></tr>
+            <tr><td><strong>Application Gateway</strong></td><td>Weighted backend pools / URL rules</td></tr>
+            <tr><td><strong>AKS</strong> — replica ratio or a service mesh</td><td>Pod count ratio, or precise mesh-level weights (Istio/Linkerd)</td></tr>
+            <tr><td><strong>Azure Container Apps</strong></td><td>Built-in revision traffic weights</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> canary strategy in a deployment job</div>
+        <pre class="code"><code>- deployment: CanaryDeploy
+  environment: production
+  strategy:
+    canary:
+      increments: [10, 25, 50]      <span class="cm"># then the remainder</span>
+      preDeploy:
+        steps: [ { script: ./prepare.sh } ]
+      deploy:
+        steps: [ { script: ./deploy.sh --weight $(strategy.increment) } ]
+      routeTraffic:
+        steps: [ { script: ./shift-traffic.sh $(strategy.increment) } ]
+      postRouteTraffic:
+        steps: [ { script: ./check-health.sh } ]   <span class="cm"># fail here → on: failure</span>
+      on:
+        failure:
+          steps: [ { script: ./rollback.sh } ]</code></pre>
+      </div>
+
+      <h3 id="ring">Ring deployment / progressive exposure</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Ring</th><th>Audience</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Ring 0</strong> — canary/dogfood</td><td>The engineering team itself</td><td>Catch the obvious before anyone else sees it</td></tr>
+            <tr><td><strong>Ring 1</strong> — early adopters</td><td>Internal org / opt-in preview users (~1%)</td><td>Real usage, tolerant audience</td></tr>
+            <tr><td><strong>Ring 2</strong> — broad internal / limited external</td><td>~10%</td><td>Scale and diversity of configuration</td></tr>
+            <tr><td><strong>Ring 3+</strong> — general availability</td><td>Everyone</td><td>Full rollout</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — canary vs ring</p>
+        <p><strong>Canary</strong> splits by <em>traffic percentage</em> and is usually short-lived (minutes to hours). <strong>Ring</strong> splits by <em>audience cohort</em> and each ring may bake for days. "Roll out to internal users first, then preview customers, then everyone" is a <strong>ring</strong> deployment (progressive exposure). Microsoft uses rings for Windows, Microsoft 365 and Azure itself.</p>
+      </div>
+
+      <h3 id="rolling">Rolling deployment</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> rolling strategy</div>
+        <pre class="code"><code>- deployment: RollingDeploy
+  environment: vm-farm
+  strategy:
+    rolling:
+      maxParallel: 25%          <span class="cm"># update a quarter of targets at a time</span>
+      preDeploy:
+        steps: [ { script: ./drain-from-load-balancer.sh } ]
+      deploy:
+        steps: [ { script: ./install.sh } ]
+      routeTraffic:
+        steps: [ { script: ./add-back-to-load-balancer.sh } ]
+      postRouteTraffic:
+        steps: [ { script: ./verify.sh } ]
+      on:
+        failure:
+          steps: [ { script: ./rollback.sh } ]</code></pre>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">Rolling means two versions run simultaneously</p>
+        <p>During a rolling (or canary, or blue-green with a shared database) deployment, <strong>v1 and v2 are both live at once</strong>. Both versions must therefore tolerate the same database schema and the same message formats — which is exactly why the <a href="#database">expand–contract pattern</a> exists.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="feature-flags">Feature flags with Azure App Configuration</h2>
+      <p>Feature flags <strong>decouple deployment from release</strong>: code ships dark and is switched on later, without a redeploy. This is what makes trunk-based development safe.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Flag type</th><th>Lifetime</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Release toggle</strong></td><td>Days–weeks (remove after launch)</td><td>Hide an unfinished checkout redesign</td></tr>
+            <tr><td><strong>Experiment toggle</strong></td><td>Duration of the experiment</td><td>A/B test two onboarding flows</td></tr>
+            <tr><td><strong>Ops toggle</strong></td><td>Long-lived</td><td>Kill switch / circuit breaker for an expensive feature</td></tr>
+            <tr><td><strong>Permission toggle</strong></td><td>Permanent</td><td>Premium-tier functionality</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Feature filter</th><th>Enables the flag for</th></tr></thead>
+          <tbody>
+            <tr><td><code>TargetingFilter</code></td><td>Named users, named groups, or a rollout percentage <em>per group</em> — the ring/progressive-exposure filter</td></tr>
+            <tr><td><code>TimeWindowFilter</code></td><td>A start/end date range — scheduled launches</td></tr>
+            <tr><td><code>PercentageFilter</code></td><td>A random X% of requests (not sticky per user)</td></tr>
+            <tr><td>Custom filter</td><td>Any logic you implement (region, tenant, device)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">C#</span> Azure App Configuration feature manager</div>
+        <pre class="code"><code><span class="cm">// Program.cs — connect with a managed identity, no connection string</span>
+builder.Configuration.AddAzureAppConfiguration(options =&gt;
+{
+    options.Connect(new Uri(builder.Configuration["AppConfig:Endpoint"]!),
+                    new DefaultAzureCredential())
+           .UseFeatureFlags(ff =&gt; ff.CacheExpirationInterval = TimeSpan.FromMinutes(5));
+});
+builder.Services.AddAzureAppConfiguration();
+builder.Services.AddFeatureManagement().AddFeatureFilter&lt;TargetingFilter&gt;();
+
+<span class="cm">// Usage</span>
+public async Task&lt;IActionResult&gt; Index()
+{
+    if (await _featureManager.IsEnabledAsync("NewDashboard"))
+        return View("NewDashboard");
+    return View("Dashboard");
+}</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — flags belong outside the artifact</p>
+        <p>The whole point is changing behaviour <strong>without redeploying</strong>, so flag state must live in a <strong>runtime configuration store</strong> (Azure App Configuration), not in <code>appsettings.json</code> baked into the build. Note the cache expiration: a flag change takes effect after the refresh interval, not instantly. Also budget for <strong>flag debt</strong> — release toggles must be removed once the feature is fully rolled out.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="ordering">Ordering dependent deployments</h2>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> reliable ordering across stages</div>
+        <pre class="code"><code>stages:
+  - stage: Infrastructure
+    jobs: [ { job: Bicep, steps: [ { script: az deployment group create ... } ] } ]
+
+  - stage: Database
+    dependsOn: Infrastructure
+    condition: succeeded('Infrastructure')
+    jobs: [ { job: Migrate, steps: [ { script: ./migrate.sh } ] } ]
+
+  - stage: Api
+    dependsOn: Database                <span class="cm"># API depends on the new schema</span>
+    jobs: [ { deployment: DeployApi, environment: prod, strategy: { runOnce: { deploy: { steps: [ { script: ./deploy-api.sh } ] } } } } ]
+
+  - stage: Web
+    dependsOn: Api                     <span class="cm"># front end depends on the API</span>
+    jobs: [ { deployment: DeployWeb, environment: prod, strategy: { runOnce: { deploy: { steps: [ { script: ./deploy-web.sh } ] } } } } ]</code></pre>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Ordering rules of thumb</p>
+        <p>Deploy in dependency order: <strong>infrastructure → database (expand) → back-end services → front end</strong>, and remove in reverse. Where services are independently deployable, prefer <strong>backwards-compatible contracts</strong> over strict ordering — coupling deployments together reduces your ability to release any one of them.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="hotfix">Hotfix path plan</h2>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+gitGraph
+  commit id: "v1.5.0" tag: "v1.5.0"
+  branch main-dev
+  commit id: "v2 work"
+  checkout main
+  branch hotfix/payment
+  commit id: "urgent fix"
+  checkout main
+  merge hotfix/payment tag: "v1.5.1"
+  checkout main-dev
+  merge hotfix/payment id: "port fix forward"
+        </div>
+        <div class="mm-cap">Branch from the released tag, fix, ship as a patch, then port the fix forward so v2 does not regress.</div>
+      </div>
+      <ol class="steps">
+        <li><strong>Branch from the deployed tag</strong> (not from <code>main</code>) — <code>main</code> contains unreleased work you do not want in a hotfix.</li>
+        <li><strong>Make the minimal fix</strong> and open a PR with expedited review (fewer required reviewers is a legitimate policy exception for hotfix branches).</li>
+        <li><strong>Run a shortened pipeline</strong> — smoke and regression tests only, skipping long suites.</li>
+        <li><strong>Tag a patch version</strong> (<code>v1.5.1</code>) and deploy, ideally via slot swap for instant rollback.</li>
+        <li><strong>Merge or cherry-pick the fix back to <code>main</code></strong> — non-negotiable, or the bug returns in the next release.</li>
+        <li><strong>Post-incident</strong>: add a regression test that would have caught it.</li>
+      </ol>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> hotfix fast path</div>
+        <pre class="code"><code>trigger:
+  branches: { include: ['hotfix/*'] }
+
+steps:
+  - script: dotnet test --filter "Category=Smoke|Category=Regression"
+  - task: AzureWebApp@1
+    condition: succeeded()
+    inputs:
+      appName: myApp
+      deployToSlotOrASE: true
+      slotName: staging          <span class="cm"># then swap — rollback stays instant</span>
+      package: '$(Build.ArtifactStagingDirectory)/**/*.zip'</code></pre>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="resiliency">Resiliency and rollback</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Practice</th><th>What it buys you</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Health endpoint</strong> (<code>/health</code>, <code>/ready</code>)</td><td>A single truth the load balancer, orchestrator and pipeline can all query</td></tr>
+            <tr><td><strong>Readiness vs liveness probes</strong></td><td>Readiness gates <em>traffic</em>; liveness triggers a <em>restart</em> — confusing them causes restart loops</td></tr>
+            <tr><td><strong>Connection draining</strong></td><td>In-flight requests finish before an instance is removed</td></tr>
+            <tr><td><strong>Retry with exponential backoff + jitter</strong></td><td>Survives transient faults without creating a thundering herd</td></tr>
+            <tr><td><strong>Circuit breaker</strong></td><td>Stops hammering a failing dependency; fails fast instead</td></tr>
+            <tr><td><strong>Automated rollback trigger</strong></td><td>Post-deployment gate on error rate/latency → <code>on: failure</code> hook</td></tr>
+            <tr><td><strong>Multi-region + availability zones</strong></td><td>Survives datacentre and regional failure</td></tr>
+            <tr><td><strong>Idempotent deployment scripts</strong></td><td>Safe to re-run after a partial failure</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  D[Deploy] --> W[Bake / observe<br/>15 min window]
+  W --> Q{Azure Monitor:<br/>alerts fired?}
+  Q -->|No| OK[Complete the release]
+  Q -->|Yes| RB[Automatic rollback<br/>swap slots back / redeploy previous]
+        </div>
+        <div class="mm-cap">A post-deployment gate turns "someone noticed and rolled back" into an automated control.</div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — rollback vs roll forward</p>
+        <p><strong>Roll back</strong> when the previous version is known-good and the change is reversible — slot swap is the fastest route. <strong>Roll forward</strong> when rollback is impossible or unsafe, most often because a <strong>database migration cannot be undone</strong>. This is precisely why migrations should be backwards-compatible: it preserves the option to roll back.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="app-deployment">Deploying containers, binaries and scripts</h2>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> container → AKS</div>
+          <pre class="code"><code>- task: Docker@2
+  inputs:
+    containerRegistry: 'acr-connection'
+    repository: 'myapp'
+    command: buildAndPush
+    Dockerfile: '**/Dockerfile'
+    tags: |
+      $(Build.BuildId)
+      latest
+
+- task: KubernetesManifest@1
+  inputs:
+    action: deploy
+    connectionType: kubernetesServiceConnection
+    kubernetesServiceConnection: 'aks-connection'
+    namespace: production
+    manifests: |
+      k8s/deployment.yaml
+      k8s/service.yaml
+    containers: 'myregistry.azurecr.io/myapp:$(Build.BuildId)'</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> container → AKS with OIDC</div>
+          <pre class="code"><code>permissions:
+  id-token: write        <span class="cm"># required for OIDC</span>
+  contents: read
+
+steps:
+  - uses: azure/login@v2
+    with:
+      client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+      tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+      subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  - run: |
+      az acr login --name myregistry
+      docker build -t myregistry.azurecr.io/myapp:${{ github.sha }} .
+      docker push myregistry.azurecr.io/myapp:${{ github.sha }}
+
+  - uses: azure/aks-set-context@v4
+    with: { resource-group: myRG, cluster-name: myAKS }
+
+  - uses: azure/k8s-deploy@v5
+    with:
+      namespace: production
+      manifests: ./k8s/
+      images: myregistry.azurecr.io/myapp:${{ github.sha }}
+      strategy: canary
+      percentage: 20</code></pre>
+        </div>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Tag images with the commit SHA, never only <code>latest</code></p>
+        <p><code>latest</code> is mutable, so a rollback or a re-run can silently pull different bits. Tag with <code>$(Build.BuildId)</code> or <code>github.sha</code> so every deployment is reproducible and traceable — the same "build once, deploy many" principle from <a href="../package-management/#publishing">3.1</a>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="database">Deployments that include database tasks</h2>
+      <p>Databases are stateful and hard to roll back — the reason most deployment questions with a database attached resolve to "make the change backwards compatible".</p>
+
+      <h3 id="expand-contract">The expand–contract (parallel change) pattern</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  E["1 · EXPAND<br/>add the new column/table<br/>nullable, with a default"] --> M["2 · MIGRATE<br/>deploy app that writes BOTH<br/>old and new; backfill data"]
+  M --> R["3 · READ<br/>deploy app that reads<br/>the new shape"]
+  R --> C["4 · CONTRACT<br/>drop the old column<br/>once nothing references it"]
+        </div>
+        <div class="mm-cap">Each step is independently deployable and reversible — at no point do the app and schema become incompatible.</div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — never rename a column in one release</p>
+        <p>A rename breaks the running version the instant it applies, which is fatal under rolling, canary or blue-green (where both versions run at once). The expected answer is <strong>expand–contract</strong>: add the new column, dual-write, backfill, switch reads, then drop the old column in a <em>later</em> release.</p>
+      </div>
+
+      <h3 id="db-tooling">Database deployment tooling</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Approach</th><th>Model</th><th>Tooling</th></tr></thead>
+          <tbody>
+            <tr><td><strong>State-based</strong></td><td>Declare the desired schema; the tool computes the diff</td><td><strong>DACPAC</strong> (SqlPackage / <code>SqlAzureDacpacDeployment@1</code>)</td></tr>
+            <tr><td><strong>Migration-based</strong></td><td>Ordered, versioned scripts applied in sequence</td><td><strong>EF Core migrations</strong>, <strong>Flyway</strong>, <strong>Liquibase</strong>, DbUp</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> DACPAC and EF Core migrations</div>
+        <pre class="code"><code><span class="cm"># State-based: DACPAC publish</span>
+- task: SqlAzureDacpacDeployment@1
+  inputs:
+    azureSubscription: 'MyServiceConnection'
+    AuthenticationType: 'servicePrincipal'
+    ServerName: 'myserver.database.windows.net'
+    DatabaseName: 'mydb'
+    deployType: 'DacpacTask'
+    DeploymentAction: 'Publish'
+    DacpacFile: '$(Pipeline.Workspace)/drop/MyApp.dacpac'
+    <span class="cm"># Leave BlockOnPossibleDataLoss at its default (true) in production!</span>
+    AdditionalArguments: '/p:BlockOnPossibleDataLoss=true'
+
+<span class="cm"># Migration-based: generate an idempotent script, review it, then apply</span>
+- script: |
+    dotnet ef migrations script --idempotent \
+      --project src/MyApp.Data --startup-project src/MyApp.Api \
+      --output $(Build.ArtifactStagingDirectory)/migrate.sql
+  displayName: Generate migration script</code></pre>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">Caveat — <code>BlockOnPossibleDataLoss</code></p>
+        <p>Setting <code>/p:BlockOnPossibleDataLoss=false</code> lets the deployment <strong>silently drop columns and data</strong>. It is occasionally necessary, but if a question offers it as the fix for "my deployment failed with a data-loss warning" in a production context, the safe answer is to <strong>rewrite the change as expand–contract</strong>, not to disable the guard.</p>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Practices that make database deployments safe</p>
+        <p>Generate an <strong>idempotent</strong> script so re-runs are harmless; <strong>review the generated SQL</strong> as a pipeline artifact before an approval gate; take a <strong>backup or restore point</strong> immediately before applying; run migrations in their <strong>own stage</strong> with <code>dependsOn</code> so the app never deploys against an unmigrated schema; and use a <strong>deployment job with an environment</strong> so the change is approved and recorded.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.4 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Zero downtime with instant, certain rollback</td><td><strong>Blue-green</strong> via App Service <strong>slot swap</strong></td></tr>
+            <tr><td>After the swap, prod points at the test database</td><td>Mark the connection string as a <strong>deployment slot setting</strong></td></tr>
+            <tr><td>Validate against production config before swapping</td><td><strong>Swap with preview</strong> (multi-phase swap)</td></tr>
+            <tr><td>Expose to 5% of traffic and watch error rate</td><td><strong>Canary</strong></td></tr>
+            <tr><td>Compare conversion between two designs</td><td><strong>A/B testing</strong></td></tr>
+            <tr><td>Internal users → preview customers → everyone</td><td><strong>Ring deployment</strong> / progressive exposure</td></tr>
+            <tr><td>Update 25% of VMs at a time</td><td><strong>Rolling</strong> strategy, <code>maxParallel: 25%</code></td></tr>
+            <tr><td>Merge unfinished work to main safely</td><td><strong>Feature flags</strong> (Azure App Configuration)</td></tr>
+            <tr><td>Turn a feature on for one customer group</td><td><code>TargetingFilter</code></td></tr>
+            <tr><td>Schedule a feature to go live at midnight</td><td><code>TimeWindowFilter</code></td></tr>
+            <tr><td>Instantly disable a misbehaving feature</td><td><strong>Ops toggle / kill switch</strong> — no redeploy</td></tr>
+            <tr><td>DB schema must change before the app deploys</td><td>Separate migration <strong>stage</strong> with <code>dependsOn</code></td></tr>
+            <tr><td>Rename a column with zero downtime</td><td><strong>Expand–contract</strong> across releases</td></tr>
+            <tr><td>Automatically undo a bad release</td><td>Post-deployment <strong>Azure Monitor gate</strong> + <code>on: failure</code> hook</td></tr>
+            <tr><td>Critical production bug, fast path</td><td><strong>Hotfix branch from the tag</strong> → short pipeline → tag patch → port forward</td></tr>
+            <tr><td>Make a rollback reproducible</td><td>Tag images with the <strong>commit SHA</strong>, not <code>latest</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../pipelines/"><div class="pg-dir">← Previous</div><div class="pg-title">3.3 · Design and implement pipelines</div></a>
+        <a class="next" href="../infrastructure-as-code/"><div class="pg-dir">Next →</div><div class="pg-title">3.5 · Infrastructure as code</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Tips &amp; High-Yield Caveats — AZ-400</title>
+  <meta name="description" content="High-yield AZ-400 exam caveats: Azure DevOps vs GitHub terminology map, 'which tool' decision tables, precedence and conflict-resolution rules, YAML gotchas, old-name to new-name mapping, and question-format strategy.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/exam-tips/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Exam Tips and High-Yield Caveats">
+  <meta property="og:description" content="Azure DevOps vs GitHub map, which-tool tables, precedence rules, YAML gotchas and question-format strategy for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/exam-tips/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Exam Tips and High-Yield Caveats">
+  <meta name="twitter:description" content="Which-tool tables, precedence rules, YAML gotchas and question-format strategy for AZ-400.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Exam Tips and High-Yield Caveats","description":"Azure DevOps vs GitHub map, which-tool tables, precedence rules, YAML gotchas and question-format strategy for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/exam-tips/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Exam Tips","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/exam-tips/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="tips">
+  <div class="layout" style="--accent:var(--ms-amber)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head" style="--accent:#b8860b">
+        <div class="kicker">Final review</div>
+        <h1>Exam tips &amp; high-yield caveats</h1>
+        <p>The traps, terminology pairs and "which tool" distinctions AZ-400 loves to test. Skim this the night before — it stitches the five domains into the decisions the exam actually asks you to make.</p>
+      </div>
+
+      <div class="callout warn">
+        <p class="ct-title">Always verify</p>
+        <p>Microsoft renames and re-scopes products frequently (Azure AD → Entra ID, Guest Configuration → Machine Configuration, classic release gates → environment checks). These caveats reflect the current GA picture and the skills measured effective <strong>July 27, 2026</strong> — <strong>confirm against the official docs</strong> before relying on any single fact.</p>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="ado-vs-github">Azure DevOps ↔ GitHub — the terminology map</h2>
+      <p>The single highest-yield thing on this page. A large share of AZ-400 questions are asking whether you know the two names for the same idea, or which platform a feature belongs to.</p>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Concept</th><th>Azure DevOps</th><th>GitHub</th></tr></thead>
+          <tbody>
+            <tr><td>CI/CD definition</td><td>Azure Pipelines (<code>azure-pipelines.yml</code>)</td><td>GitHub Actions (<code>.github/workflows/*.yml</code>)</td></tr>
+            <tr><td>Structure</td><td>Pipeline → <strong>stage</strong> → job → step</td><td>Workflow → job → step (<strong>no stages</strong>)</td></tr>
+            <tr><td>Compute</td><td>Agent + pool</td><td>Runner + runner group</td></tr>
+            <tr><td>Reusable step unit</td><td>Task (<code>task: X@1</code>)</td><td>Action (<code>uses: org/x@v1</code>)</td></tr>
+            <tr><td>Reuse a whole pipeline/workflow</td><td>Template / <code>extends</code></td><td>Reusable workflow (<code>workflow_call</code>)</td></tr>
+            <tr><td>Merge quality rules</td><td><strong>Branch policies</strong></td><td><strong>Branch protection rules</strong> / rulesets</td></tr>
+            <tr><td>Block merge on failing CI</td><td>Build validation</td><td>Required status checks</td></tr>
+            <tr><td>Package registry</td><td>Azure Artifacts</td><td>GitHub Packages / <code>ghcr.io</code></td></tr>
+            <tr><td>Work tracking</td><td>Azure Boards (work items)</td><td>GitHub Issues + Projects</td></tr>
+            <tr><td>Link commit → work item</td><td><code>#123</code> (in Repos) / <code>AB#123</code> (from GitHub)</td><td><code>#123</code> (GitHub issue)</td></tr>
+            <tr><td>Secretless Azure auth</td><td>Service connection + workload identity federation</td><td><code>azure/login</code> + OIDC</td></tr>
+            <tr><td>Deployment gate</td><td>Environment approvals &amp; checks</td><td>Environment protection rules</td></tr>
+            <tr><td>Free non-technical access</td><td>Stakeholder access level</td><td>Outside collaborator (read)</td></tr>
+            <tr><td>Security scanning suite</td><td>GHAS for Azure DevOps</td><td>GitHub Advanced Security</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Facts that decide a platform question</p>
+        <p><strong>TFVC</strong> → Azure Pipelines only. <strong>Stages / classic release gates / deployment groups</strong> → Azure Pipelines only. <strong>Dependabot / native CodeQL / community actions marketplace</strong> → GitHub. <strong>Code in GitHub but need rich release management</strong> → GitHub source + Azure Pipelines via the GitHub App.</p>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="which-tool">"Which tool / which feature?" decision table</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Version and distribute arbitrary non-package files</td><td><strong>Universal Packages</strong> (Azure Artifacts)</td></tr>
+            <tr><td>Cache a public registry so builds survive its outage</td><td><strong>Upstream source</strong> on the feed</td></tr>
+            <tr><td>Promote packages testing → stable, no re-versioning</td><td><strong>Feed views</strong> (<code>@prerelease</code> → <code>@release</code>)</td></tr>
+            <tr><td>Publish the test report even when tests fail</td><td><code>condition: succeededOrFailed()</code> / <code>if: always()</code></td></tr>
+            <tr><td>Test against a real DB with no shared server</td><td><strong>Service containers</strong></td></tr>
+            <tr><td>Force every prod pipeline to run a mandatory scan</td><td><code>extends</code> template + <strong>required template check</strong></td></tr>
+            <tr><td>Build must reach a private VNet / on-prem resource</td><td><strong>Self-hosted agent/runner</strong></td></tr>
+            <tr><td>Bursty Kubernetes runners that scale to zero</td><td><strong>Actions Runner Controller (ARC)</strong></td></tr>
+            <tr><td>Let a user add/remove a stage at queue time</td><td><strong>Parameters</strong> + <code>${{ if }}</code> (compile-time)</td></tr>
+            <tr><td>Zero downtime with instant rollback</td><td><strong>Blue-green</strong> via slot swap</td></tr>
+            <tr><td>Watch error rate on 5% of traffic</td><td><strong>Canary</strong></td></tr>
+            <tr><td>Compare conversion between two working designs</td><td><strong>A/B testing</strong></td></tr>
+            <tr><td>Internal → preview → everyone rollout</td><td><strong>Ring</strong> / progressive exposure</td></tr>
+            <tr><td>Merge unfinished work to main safely</td><td><strong>Feature flags</strong> (Azure App Configuration)</td></tr>
+            <tr><td>Rename a DB column with zero downtime</td><td><strong>Expand–contract</strong> across releases</td></tr>
+            <tr><td>Azure-native IaC, simpler than ARM</td><td><strong>Bicep</strong></td></tr>
+            <tr><td>Provision AWS + Azure with one tool</td><td><strong>Terraform</strong></td></tr>
+            <tr><td>Preview infra changes before applying</td><td><code>az deployment group what-if</code></td></tr>
+            <tr><td>Audit OS config across many VMs via Azure Policy</td><td><strong>Azure Machine Configuration</strong></td></tr>
+            <tr><td>Devs self-serve governed environments from templates</td><td><strong>Azure Deployment Environments</strong></td></tr>
+            <tr><td>Keep one release build forever</td><td><strong>Retention lease</strong></td></tr>
+            <tr><td>Azure resource → Azure service, no secrets</td><td><strong>Managed identity</strong></td></tr>
+            <tr><td>Deploy to Azure from GitHub with no stored secret</td><td><strong>OIDC / workload identity federation</strong></td></tr>
+            <tr><td>Block a secret at push time</td><td><strong>GHAS secret scanning push protection</strong></td></tr>
+            <tr><td>Auto-patch a vulnerable dependency</td><td><strong>Dependabot security updates</strong></td></tr>
+            <tr><td>Unified security posture across GitHub + Azure DevOps</td><td><strong>Defender for Cloud DevOps security</strong></td></tr>
+            <tr><td>Surface a 3rd-party scanner's results in GitHub</td><td>Upload <strong>SARIF</strong></td></tr>
+            <tr><td>Monitor AKS pods</td><td><strong>Container Insights</strong></td></tr>
+            <tr><td>Trace a request across microservices</td><td><strong>Distributed tracing / Application Map</strong></td></tr>
+            <tr><td>Alert an app when CPU &gt; 80%</td><td><strong>Azure Monitor metric alert</strong> + action group</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="precedence">Precedence &amp; conflict-resolution rules</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h4 style="margin-top:0">Azure DevOps permissions</h4>
+          <p><strong>Deny beats Allow</strong> across group memberships (except Project Collection Administrators). Permissions inherit project → repo → branch.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">GitHub permissions</h4>
+          <p><strong>Highest permission wins</strong> when a user gets access from multiple teams/sources — the opposite of Azure DevOps.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">ARM deployment mode</h4>
+          <p><strong>Incremental</strong> (default) never deletes. <strong>Complete</strong> deletes anything in the RG not in the template.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">SemVer bump from commits</h4>
+          <p><code>fix:</code> → patch · <code>feat:</code> → minor · <code>!</code> / <code>BREAKING CHANGE:</code> → major.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Stage vs job ordering</h4>
+          <p>Azure Pipelines: <strong>stages sequential</strong>, <strong>jobs parallel</strong> by default. GitHub: <strong>all jobs parallel</strong> unless <code>needs</code>.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">cancel-in-progress</h4>
+          <p><code>true</code> for PR/CI (save minutes). <code>false</code> for production deploys (never abort mid-deploy).</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Release-branch fixes</h4>
+          <p>Always <strong>merge/cherry-pick the fix forward</strong> to <code>main</code> or it regresses in the next release.</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Classic release gates</h4>
+          <p>All gates must pass in the <strong>same</strong> sampling window; they re-evaluate until then or timeout.</p>
+        </div>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="yaml-gotchas">YAML &amp; expression gotchas</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>Trap</th><th>What to remember</th></tr></thead>
+          <tbody>
+            <tr><td><code>${{ }}</code> vs <code>$[ ]</code> vs <code>$( )</code></td><td>Compile-time / runtime-expression / macro. Parameters and conditional structure are compile-time.</td></tr>
+            <tr><td>Parameters vs variables</td><td>Parameters are typed and change pipeline <em>shape</em>; variables are strings and change <em>values</em>.</td></tr>
+            <tr><td><code>deployment:</code> vs <code>job:</code></td><td>Only a <strong>deployment job</strong> binds to an environment, gets approvals/history, and auto-downloads artifacts.</td></tr>
+            <tr><td>Approvals location</td><td>Configured on the <strong>environment</strong> (UI/REST), never inside the YAML file.</td></tr>
+            <tr><td>Secret variables</td><td>Not auto-exposed to scripts — map them under <code>env:</code> explicitly.</td></tr>
+            <tr><td><code>cron</code> is UTC</td><td>Always UTC in both platforms; watch daylight-saving. Azure schedules need <code>always: true</code> to run without changes.</td></tr>
+            <tr><td><code>fetchDepth: 0</code></td><td>GitVersion/SonarQube/blame need full history — a shallow clone breaks them.</td></tr>
+            <tr><td><code>fail-fast: false</code></td><td>See all matrix results instead of cancelling siblings on first failure.</td></tr>
+            <tr><td>OIDC needs <code>id-token: write</code></td><td>Plus a federated-credential subject matching the repo/ref/environment.</td></tr>
+            <tr><td>Tag images with the SHA</td><td>Never deploy or roll back from a mutable <code>latest</code> tag.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="naming">Old name → new name (don't get tricked)</h2>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>You may still see…</th><th>Current name</th></tr></thead>
+          <tbody>
+            <tr><td>Azure Active Directory (Azure AD)</td><td><strong>Microsoft Entra ID</strong></td></tr>
+            <tr><td>Guest Configuration</td><td><strong>Azure Machine Configuration</strong></td></tr>
+            <tr><td>Log Analytics agent (MMA/OMS)</td><td><strong>Azure Monitor Agent (AMA)</strong> — old one retired</td></tr>
+            <tr><td>Application Insights instrumentation key</td><td><strong>Connection string</strong></td></tr>
+            <tr><td>Microsoft Defender for DevOps</td><td><strong>Defender for Cloud — DevOps security</strong></td></tr>
+            <tr><td>Classic release gates &amp; approvals</td><td><strong>Environment approvals &amp; checks</strong> (YAML)</td></tr>
+            <tr><td>MSOnline / AzureAD PowerShell</td><td><strong>Microsoft Graph PowerShell</strong> (old modules retired)</td></tr>
+            <tr><td>Project (classic GitHub board)</td><td><strong>Projects</strong> (tables, boards, roadmaps)</td></tr>
+            <tr><td>WhiteSource / Mend Bolt</td><td><strong>Dependabot / GHAS dependency scanning</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===================== -->
+      <h2 id="format">Question-format strategy</h2>
+      <dl class="terms">
+        <dt>Case studies</dt>
+        <dd>Read the <strong>requirements and existing environment</strong> first, then the questions. Answers must satisfy <em>all</em> constraints ("minimise cost", "least privilege", "minimise administrative effort"). You usually can't return to a case study after leaving it.</dd>
+        <dt>Build list / drag-and-drop ordering</dt>
+        <dd>Order matters — e.g. <em>rotate secret → rewrite history → force push → re-clone</em>; or <em>expand → migrate → read → contract</em>. Eliminate impossible first steps.</dd>
+        <dt>YAML hotspots</dt>
+        <dd>Read the whole snippet before answering each dropdown. Watch for <code>needs</code>/<code>dependsOn</code>, <code>if</code>/<code>condition</code>, and permission blocks that change the correct value.</dd>
+        <dt>"Yes/No" repeated-scenario sets</dt>
+        <dd>Same setup, three variations — each independent. A previous "No" doesn't imply the next. Watch the subtle wording change.</dd>
+        <dt>"Minimise administrative effort" / "least privilege"</dt>
+        <dd>Steer you toward <strong>managed/federated identity</strong>, <strong>built-in roles</strong>, <strong>templates</strong>, <strong>group-based</strong> and <strong>automatic</strong> answers over manual/custom ones.</dd>
+      </dl>
+
+      <div class="callout tip">
+        <p class="ct-title">Day-before checklist</p>
+        <p>✅ Azure DevOps↔GitHub terminology map ✅ TFVC → Azure Pipelines ✅ stages exist only in Azure Pipelines ✅ deployment job for environments/approvals ✅ Universal Packages &amp; feed views ✅ <code>succeededOrFailed()</code> / <code>if: always()</code> ✅ blue-green vs canary vs ring vs A/B ✅ expand–contract for DB ✅ Bicep vs Terraform vs Machine Configuration ✅ Incremental vs Complete ✅ managed identity vs SP vs OIDC ✅ GHAS push protection ✅ which Insight per resource ✅ KQL <code>bin()</code>/<code>render</code>/<code>percentile()</code>.</p>
+      </div>
+
+      <div class="callout note">
+        <p class="ct-title">Take the free practice assessment</p>
+        <p>Microsoft offers an official <a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/practice/assessment" target="_blank" rel="noopener">AZ-400 practice assessment</a> — use it to find weak areas, then revisit the matching domain page here.</p>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../domain-5-instrumentation/"><div class="pg-dir">← Previous</div><div class="pg-title">Domain 5 · Instrumentation</div></a>
+        <a class="next" href="../resources/"><div class="pg-dir">Next →</div><div class="pg-title">Resources &amp; study plan</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>

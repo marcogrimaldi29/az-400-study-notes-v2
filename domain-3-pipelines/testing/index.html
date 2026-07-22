@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.2 · Testing Strategy for Pipelines — AZ-400</title>
+  <meta name="description" content="AZ-400 3.2: quality and release gates, approvals and checks, the test pyramid, unit/integration/load testing, service containers, test agents and matrices, publishing test results, and code coverage analysis.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/testing/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 3.2 · Testing Strategy for Pipelines">
+  <meta property="og:description" content="Quality and release gates, the test pyramid, service containers, test results and code coverage for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/testing/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 3.2 · Testing Strategy for Pipelines">
+  <meta name="twitter:description" content="Gates, the test pyramid, service containers, test results and coverage.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 3.2 · Testing Strategy for Pipelines","description":"Quality and release gates, the test pyramid, service containers, test results and code coverage for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/testing/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 3 · Pipelines","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/"},{"@type":"ListItem","position":3,"name":"3.2 · Testing strategy","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-3-pipelines/testing/"}]}]}
+  </script>
+  <link rel="icon" href="../../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body data-page="testing">
+  <div class="layout" style="--accent:var(--d3)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 3.2 · part of 50–55%</div>
+        <h1>Design and implement a testing strategy for pipelines</h1>
+        <p>Deciding what to test and where, turning those tests into automated gates that can stop a release, and reporting the results so the pipeline tells you something useful when it goes red.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="gates">Quality and release gates</h2>
+      <p>A <strong>gate</strong> is an automated condition that must hold before a deployment proceeds (or is considered complete). An <strong>approval</strong> is the human equivalent. Together with checks they are how governance is expressed in a pipeline.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  B[Build] --> QG{Quality gate}
+  QG -->|tests pass<br/>coverage ≥ 80%<br/>no critical CVEs| S[Deploy to staging]
+  S --> PRE{Pre-deployment gate<br/>+ approval}
+  PRE -->|no active alerts<br/>within business hours<br/>reviewer approved| P[Deploy to production]
+  P --> POST{Post-deployment gate}
+  POST -->|health stable for 15 min| DONE[Release complete]
+  POST -->|error rate spike| RB[Roll back]
+        </div>
+        <div class="mm-cap">Gates run before and after a deployment; approvals are the human gate in the middle.</div>
+      </div>
+
+      <h3 id="azure-checks">Azure Pipelines — environment checks</h3>
+      <p>In YAML pipelines, governance lives on the <strong>environment</strong>, not in the YAML file. Configure it under <em>Pipelines → Environments → [name] → Approvals and checks</em>.</p>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Check</th><th>Enforces</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Approvals</strong></td><td>Named users/groups must approve; configurable timeout and "requester cannot approve"</td></tr>
+            <tr><td><strong>Branch control</strong></td><td>Deployment may only run from allowed branches (e.g. <code>refs/heads/main</code>), optionally requiring branch protection</td></tr>
+            <tr><td><strong>Business hours</strong></td><td>Deployment only proceeds within a defined time window / days</td></tr>
+            <tr><td><strong>Query Azure Monitor alerts</strong></td><td>No active alerts matching the filter — the classic auto-rollback signal</td></tr>
+            <tr><td><strong>Invoke REST API</strong></td><td>An external system (CAB, ITSM, ServiceNow) returns success</td></tr>
+            <tr><td><strong>Invoke Azure Function</strong></td><td>Custom validation logic; supports async callback for long-running checks</td></tr>
+            <tr><td><strong>Required template</strong></td><td>The pipeline must <code>extends</code> an approved YAML template — the governance backbone</td></tr>
+            <tr><td><strong>Evaluate artifact</strong></td><td>Container image must satisfy a policy (Rego) before deployment</td></tr>
+            <tr><td><strong>Exclusive lock</strong></td><td>Only one run at a time may proceed to this environment</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — checks are configured in the UI, not the YAML</p>
+        <p>A very common trap: the YAML only <em>names</em> the environment. The approval, branch control and gates are configured on the environment object in the Azure DevOps UI (or via REST/CLI). If a question asks "where do you add a production approval to a YAML pipeline", the answer is <strong>on the environment</strong> — not a task, not a stage property.</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">"Required template" is how you enforce standards at scale</p>
+        <p>The <strong>required template check</strong> forces every pipeline deploying to an environment to <code>extends:</code> a centrally-owned template. Because an extends-template can restrict which tasks and steps are permitted, this is the mechanism for "ensure every production deployment runs the mandatory security scan" — the pipeline author cannot opt out.</p>
+      </div>
+
+      <h4>Classic release pipeline gates</h4>
+      <p>Classic (non-YAML) release pipelines have <strong>pre-deployment</strong> and <strong>post-deployment gates</strong> configured on each stage: Azure Monitor alerts, Invoke REST API, Invoke Azure Function, Query Work Items, and security/compliance assessment. They evaluate on an interval with a timeout, and all gates must pass simultaneously in one sampling window.</p>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — gates must all pass in the same evaluation</p>
+        <p>Gates are re-sampled on a fixed interval until they <em>all</em> succeed together or the timeout expires. One gate passing at 10:00 and another at 10:05 is not enough — they must both be green in the same sampling pass.</p>
+      </div>
+
+      <h3 id="github-environments">GitHub Actions — environment protection rules</h3>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> environment-gated deployment</div>
+        <pre class="code"><code>jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production          <span class="cm"># protection rules configured in repo Settings → Environments</span>
+      url: https://myapp.example.com
+    steps:
+      - run: ./deploy.sh</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Protection rule</th><th>Enforces</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Required reviewers</strong></td><td>Up to 6 users/teams must approve; the job waits (up to 30 days)</td></tr>
+            <tr><td><strong>Wait timer</strong></td><td>A forced delay (up to 43,200 minutes / 30 days) before the job runs</td></tr>
+            <tr><td><strong>Deployment branches and tags</strong></td><td>Only listed branches/tags (or protected branches) may deploy</td></tr>
+            <tr><td><strong>Custom deployment protection rules</strong></td><td>A GitHub App gates the deployment on an external signal (observability, ITSM)</td></tr>
+            <tr><td><strong>Environment secrets &amp; variables</strong></td><td>Values only readable by jobs that reach this environment — after approval</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Environment secrets are a security control, not just convenience</p>
+        <p>Because environment secrets are only exposed once required reviewers approve, putting production credentials in an <strong>environment</strong> secret (rather than a repo secret) means a malicious PR workflow cannot reach them. This overlaps with <a href="../../domain-4-security/#secrets">Domain 4</a> and is a favourite "how do you protect production credentials" answer.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="test-strategy">A comprehensive testing strategy</h2>
+
+      <h3 id="pyramid">The test pyramid</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart TB
+  E["End-to-end / UI<br/>few · slow · brittle · expensive"]
+  I["Integration / API / contract<br/>some · moderate speed"]
+  U["Unit tests<br/>many · milliseconds · cheap"]
+  E --- I --- U
+        </div>
+        <div class="mm-cap">Push testing down the pyramid: the cheaper and faster a test, the more of them you should have.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Type</th><th>Scope</th><th>Speed</th><th>Runs</th><th>Fails tell you</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Local / developer</strong></td><td>Whatever the dev just changed</td><td>Instant</td><td>Before commit (pre-commit hook)</td><td>You broke your own change</td></tr>
+            <tr><td><strong>Unit</strong></td><td>One function/class in isolation, dependencies mocked</td><td>&lt; 1 s</td><td>Every build and PR</td><td>Which line is wrong</td></tr>
+            <tr><td><strong>Integration</strong></td><td>Several components together, real DB/queue via containers</td><td>Seconds–minutes</td><td>Every build/PR</td><td>The contract between components broke</td></tr>
+            <tr><td><strong>Contract</strong></td><td>Consumer/provider API expectations</td><td>Fast</td><td>Every build</td><td>A service changed its API</td></tr>
+            <tr><td><strong>End-to-end / UI</strong></td><td>Full user journey through a deployed system</td><td>Minutes</td><td>Nightly / pre-release / post-deploy smoke</td><td>Something is wrong <em>somewhere</em></td></tr>
+            <tr><td><strong>Load / performance</strong></td><td>System under sustained or increasing traffic</td><td>Slow</td><td>Pre-release, scheduled</td><td>It works but not at scale</td></tr>
+            <tr><td><strong>Security (SAST/DAST/SCA)</strong></td><td>Code, running app, dependencies</td><td>Varies</td><td>PR / build / staging</td><td>See <a href="../../domain-4-security/#scanning">Domain 4</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — shift left, but keep the pyramid</p>
+        <p>The exam rewards answers that move testing <strong>earlier and cheaper</strong>. When a scenario says "the pipeline takes too long because of UI tests", the expected fix is to <strong>push coverage down the pyramid</strong> (more unit/integration, fewer E2E) and run the remaining E2E suite on a schedule or post-deployment — not to buy more agents.</p>
+      </div>
+
+      <h3 id="unit">Unit tests</h3>
+      <p>Characteristics the exam expects you to recognise: <strong>isolated</strong> (dependencies mocked), <strong>fast</strong> (milliseconds), <strong>deterministic</strong> (same input → same result, always), <strong>independent</strong> (no ordering dependency), and with <strong>no network, file system or database access</strong>.</p>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> .NET unit tests with coverage</div>
+        <pre class="code"><code>- task: DotNetCoreCLI@2
+  displayName: Run unit tests
+  inputs:
+    command: test
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration Release --collect:"XPlat Code Coverage"'
+    publishTestResults: true        <span class="cm"># auto-publishes the .trx</span></code></pre>
+      </div>
+
+      <h3 id="integration">Integration tests and service containers</h3>
+      <p>Service containers give a job real backing services (database, cache, queue) without any external infrastructure — the standard answer to "test against a real database without a shared test server".</p>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> service container</div>
+          <pre class="code"><code>resources:
+  containers:
+    - container: pg
+      image: postgres:16
+      env:
+        POSTGRES_DB: testdb
+        POSTGRES_USER: testuser
+        POSTGRES_PASSWORD: testpass
+      ports:
+        - 5432:5432
+
+jobs:
+  - job: IntegrationTests
+    pool:
+      vmImage: ubuntu-latest
+    services:
+      postgres: pg
+    steps:
+      - script: dotnet test --filter Category=Integration
+        env:
+          DB_CONNECTION: >-
+            Host=localhost;Database=testdb;
+            Username=testuser;Password=testpass</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> service container</div>
+          <pre class="code"><code>jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: &gt;-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm run test:integration
+        env:
+          REDIS_URL: redis://localhost:6379</code></pre>
+        </div>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Health checks matter</p>
+        <p>Without <code>--health-cmd</code> (GitHub) or an equivalent readiness wait, tests can start before the container accepts connections — a classic source of <a href="../maintain/#flaky">flaky tests</a>. Service containers require a <strong>Linux</strong> runner/agent with Docker available; they do not work on Microsoft-hosted macOS or Windows images in the same way.</p>
+      </div>
+
+      <h3 id="load">Load and performance testing</h3>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Test type</th><th>Load pattern</th><th>Answers</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Load test</strong></td><td>Constant, expected traffic</td><td>Does it meet SLOs under normal peak?</td></tr>
+            <tr><td><strong>Stress test</strong></td><td>Increase until failure</td><td>Where does it break, and how?</td></tr>
+            <tr><td><strong>Spike test</strong></td><td>Sudden surge then drop</td><td>Does autoscaling react fast enough?</td></tr>
+            <tr><td><strong>Soak / endurance test</strong></td><td>Moderate load for hours</td><td>Are there memory leaks or resource exhaustion?</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Azure Load Testing</strong> is the managed service: it runs <strong>Apache JMeter</strong> or <strong>Locust</strong> scripts (or simple URL-based tests) at scale from Azure, correlates results with server-side Azure Monitor metrics, and can <strong>fail the pipeline</strong> on threshold breach.</p>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> Azure Load Testing with fail criteria</div>
+        <pre class="code"><code>- task: AzureLoadTest@1
+  inputs:
+    azureSubscription: 'MyServiceConnection'
+    loadTestConfigFile: 'loadtest/config.yaml'
+    resourceGroup: 'my-rg'
+    loadTestResource: 'my-load-test'
+
+<span class="cm"># loadtest/config.yaml — thresholds that fail the run</span>
+<span class="cm"># failureCriteria:</span>
+<span class="cm">#   - avg(response_time_ms) &gt; 2000</span>
+<span class="cm">#   - percentage(error) &gt; 5</span>
+<span class="cm">#   - p95(response_time_ms) &gt; 3000</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — regression detection needs a baseline</p>
+        <p>"Detect a performance regression before it reaches production" → run <strong>Azure Load Testing in the pipeline against staging with fail criteria</strong>, comparing against a recorded <strong>baseline</strong>. A load test with no thresholds only produces a report; it cannot gate anything.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="implementing">Implementing tests in a pipeline</h2>
+
+      <h3 id="test-tasks">Configuring test tasks</h3>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Task</th><th>For</th></tr></thead>
+          <tbody>
+            <tr><td><code>DotNetCoreCLI@2</code> (<code>command: test</code>)</td><td>.NET — xUnit, NUnit, MSTest</td></tr>
+            <tr><td><code>VSTest@3</code></td><td>Visual Studio test platform; supports test impact analysis and rerun-on-failure</td></tr>
+            <tr><td><code>Maven@4</code> / <code>Gradle@3</code></td><td>Java (JUnit)</td></tr>
+            <tr><td><code>Npm@1</code> / <code>script</code></td><td>Node.js (Jest, Mocha, Vitest)</td></tr>
+            <tr><td><code>PublishTestResults@2</code></td><td>Publish any results in JUnit / NUnit / VSTest / xUnit / cTest format</td></tr>
+            <tr><td><code>PublishCodeCoverageResults@2</code></td><td>Publish Cobertura or JaCoCo coverage</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> publishing results even on failure</div>
+        <pre class="code"><code>- task: PublishTestResults@2
+  <span class="cm"># Without this condition the step is SKIPPED when tests fail —</span>
+  <span class="cm"># which is exactly when you need the report most.</span>
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFormat: 'JUnit'          <span class="cm"># JUnit | NUnit | VSTest | XUnit | CTest</span>
+    testResultsFiles: '**/test-results/*.xml'
+    mergeTestResults: true
+    failTaskOnFailedTests: true
+    testRunTitle: 'Unit tests · $(Build.BuildNumber)'</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — <code>condition: succeededOrFailed()</code></p>
+        <p>This is one of the most reliably tested single lines in AZ-400. By default a step only runs if all previous steps succeeded, so a failing test suite means <strong>no test report is published</strong>. Adding <code>condition: succeededOrFailed()</code> (GitHub equivalent: <code>if: always()</code>) publishes the results either way. Use <code>always()</code> in Azure Pipelines only if you also want it to run when the run is <em>cancelled</em>.</p>
+      </div>
+
+      <h3 id="agents-matrix">Test agents and multi-configuration testing</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> matrix across OS</div>
+          <pre class="code"><code>jobs:
+  - job: Test
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-latest'
+        windows:
+          imageName: 'windows-latest'
+        mac:
+          imageName: 'macOS-latest'
+      maxParallel: 3
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - script: dotnet test</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> matrix across OS × version</div>
+          <pre class="code"><code>jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false     <span class="cm"># see ALL failures, not just the first</span>
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['20', '22']
+        exclude:
+          - os: windows-latest
+            node: '20'
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ matrix.node }}' }
+      - run: npm ci &amp;&amp; npm test</code></pre>
+        </div>
+      </div>
+      <ul>
+        <li><strong>Slicing</strong> splits one large suite across N agents: Azure Pipelines uses <code>parallel</code> strategy with <code>$(System.JobPositionInPhase)</code> / <code>$(System.TotalJobsInPhase)</code>; the VSTest task can distribute automatically.</li>
+        <li><strong>Test Impact Analysis</strong> (VSTest task, <code>runOnlyImpactedTests: true</code>) runs only the tests affected by the code changed since the last run — the answer to "reduce test time without losing relevant coverage".</li>
+        <li><strong>Agent demands</strong> (<code>demands: HasSpecialSoftware</code>) route a test job to agents with the right capabilities; self-hosted agents are required for private-network or licensed-tool testing.</li>
+      </ul>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — <code>fail-fast: false</code></p>
+        <p>By default GitHub Actions <strong>cancels every other matrix job</strong> the moment one fails. When the requirement is "see the results for all platforms even if one fails", the answer is <code>fail-fast: false</code>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="coverage">Code coverage analysis</h2>
+      <div class="table-wrap">
+        <table class="tbl t-orange">
+          <thead><tr><th>Coverage type</th><th>Measures</th><th>Strength</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Line / statement</strong></td><td>% of lines executed</td><td>Easy to hit, weakest signal</td></tr>
+            <tr><td><strong>Branch / decision</strong></td><td>% of if/else, switch and loop paths taken</td><td><span class="pill p-green">Most meaningful</span> for conditional logic</td></tr>
+            <tr><td><strong>Function / method</strong></td><td>% of functions called at least once</td><td>Coarse, useful for dead-code detection</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d3)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> collect and publish coverage</div>
+        <pre class="code"><code>- task: DotNetCoreCLI@2
+  inputs:
+    command: test
+    arguments: '--collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)'
+
+- task: PublishCodeCoverageResults@2
+  inputs:
+    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+    <span class="cm"># v2 infers the format; v1 required codeCoverageTool: 'Cobertura'</span></code></pre>
+      </div>
+      <h4>Enforcing a threshold</h4>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">bash</span> fail the build in the test runner</div>
+          <pre class="code"><code>dotnet test \
+  /p:CollectCoverage=true \
+  /p:CoverletOutputFormat=cobertura \
+  /p:Threshold=80 \
+  /p:ThresholdType=line,branch \
+  /p:ThresholdStat=minimum</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d3)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> SonarQube quality gate</div>
+          <pre class="code"><code>- task: SonarQubePrepare@6
+  inputs: { SonarQube: 'SonarConn', scannerMode: 'MSBuild', projectKey: 'my-app' }
+
+- script: dotnet build &amp;&amp; dotnet test --collect:"XPlat Code Coverage"
+
+- task: SonarQubeAnalyze@6
+- task: SonarQubePublish@6         <span class="cm"># fails the build if the quality gate fails</span>
+  inputs: { pollingTimeoutSec: '300' }</code></pre>
+        </div>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — coverage on <em>new</em> code</p>
+        <p>Demanding 80% coverage across a large legacy codebase is impractical, so the modern pattern — and SonarQube's default quality gate — is a threshold on <strong>new code only</strong> ("clean as you code"). If a scenario says "improve coverage without a huge remediation project", the answer is a gate on <strong>changed/new code coverage</strong>, not on the overall percentage.</p>
+      </div>
+      <div class="callout warn">
+        <p class="ct-title">Coverage is a necessary, not sufficient, metric</p>
+        <p>100% line coverage with no assertions proves nothing. Treat coverage as a floor that stops <em>untested</em> code merging — pair it with mutation testing or review of assertion quality if the scenario asks about test <em>effectiveness</em> rather than test <em>presence</em>.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">3.2 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Require manual approval before production (YAML)</td><td><strong>Approvals</strong> on the <strong>environment</strong></td></tr>
+            <tr><td>Deploy only from <code>main</code></td><td><strong>Branch control</strong> check (Azure) / <strong>deployment branches</strong> (GitHub)</td></tr>
+            <tr><td>Don't deploy if monitoring shows active alerts</td><td><strong>Query Azure Monitor alerts</strong> gate</td></tr>
+            <tr><td>Force every pipeline to run the mandatory security scan</td><td><strong>Required template</strong> check + <code>extends</code></td></tr>
+            <tr><td>Only one deployment to prod at a time</td><td><strong>Exclusive lock</strong> check</td></tr>
+            <tr><td>Test against a real database without a shared server</td><td><strong>Service containers</strong> in the job</td></tr>
+            <tr><td>Publish the test report when tests fail</td><td><code>condition: succeededOrFailed()</code> / <code>if: always()</code></td></tr>
+            <tr><td>See all platform results even if one fails</td><td><code>fail-fast: false</code></td></tr>
+            <tr><td>Run only tests affected by the change</td><td><strong>Test Impact Analysis</strong> (VSTest)</td></tr>
+            <tr><td>Block merge when the pipeline's tests fail</td><td>Branch policy <strong>build validation</strong> / required status check</td></tr>
+            <tr><td>Fail the build if coverage drops below 80%</td><td>Coverage threshold in the runner or a <strong>SonarQube quality gate</strong></td></tr>
+            <tr><td>Detect a performance regression pre-production</td><td><strong>Azure Load Testing</strong> with <code>failureCriteria</code> against a baseline</td></tr>
+            <tr><td>Find the memory leak that appears after hours</td><td><strong>Soak / endurance test</strong></td></tr>
+            <tr><td>Protect production credentials from PR workflows</td><td><strong>Environment secrets</strong> behind required reviewers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../package-management/"><div class="pg-dir">← Previous</div><div class="pg-title">3.1 · Package management</div></a>
+        <a class="next" href="../pipelines/"><div class="pg-dir">Next →</div><div class="pg-title">3.3 · Design and implement pipelines</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../../assets/js/main.js"></script>
+</body>
+</html>

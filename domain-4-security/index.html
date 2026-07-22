@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domain 4 · Security &amp; Compliance — AZ-400</title>
+  <meta name="description" content="AZ-400 Domain 4 study notes: service principals vs managed identities, GitHub and Azure DevOps authentication, permissions and access levels, Azure Key Vault, secrets and secretless auth (OIDC/workload identity federation), secure files, preventing secret leakage, and automated security and compliance scanning with GitHub Advanced Security and Defender for Cloud.">
+  <meta name="author" content="Marco Grimaldi">
+  <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-4-security/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0078d4">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AZ-400 Study Notes v2">
+  <meta property="og:title" content="AZ-400 Domain 4 · Security and Compliance">
+  <meta property="og:description" content="Identities, permissions, Key Vault, secretless auth, secure files and security scanning for AZ-400.">
+  <meta property="og:url" content="https://marcogrimaldi29.com/az-400-study-notes-v2/domain-4-security/">
+  <meta property="og:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AZ-400 Domain 4 · Security and Compliance">
+  <meta name="twitter:description" content="Identities, permissions, Key Vault, OIDC, secure files and GHAS/Defender scanning.">
+  <meta name="twitter:image" content="https://marcogrimaldi29.com/az-400-study-notes-v2/assets/images/site-mark-no-bg.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"AZ-400 Domain 4 · Security and Compliance","description":"Identities, permissions, Key Vault, secretless auth, secure files and security scanning for AZ-400.","inLanguage":"en","url":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-4-security/","author":{"@type":"Person","name":"Marco Grimaldi","url":"https://marcogrimaldi29.com/"},"isPartOf":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AZ-400 Study Notes v2","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/"},{"@type":"ListItem","position":2,"name":"Domain 4 · Security","item":"https://marcogrimaldi29.com/az-400-study-notes-v2/domain-4-security/"}]}]}
+  </script>
+  <link rel="icon" href="../assets/images/site-mark-no-bg.png">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="security">
+  <div class="layout" style="--accent:var(--d4)">
+
+    <aside class="toc"><h4>On this page</h4><nav id="toc-list"></nav></aside>
+
+    <main class="content">
+      <div class="page-head">
+        <div class="kicker">Domain 4 · 10–15%</div>
+        <h1>Develop a security and compliance plan</h1>
+        <p>Who and what your automation runs as, how secrets are stored and delivered without ever touching source control, and how vulnerabilities in code, dependencies and containers are caught automatically before they ship.</p>
+      </div>
+
+      <div class="card">
+        <strong>Three objectives:</strong>
+        <ul style="margin-bottom:0">
+          <li><a href="#authn">Authentication &amp; authorization</a> — service principals vs managed identities, GitHub &amp; Azure DevOps auth, permissions and access levels</li>
+          <li><a href="#secrets">Managing sensitive information</a> — Key Vault, secretless auth (OIDC), secure files, preventing leakage</li>
+          <li><a href="#scanning">Automate security &amp; compliance scanning</a> — GHAS, Defender for Cloud DevOps security, container scanning, Dependabot</li>
+        </ul>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="authn"><span class="num">4.1</span> Authentication &amp; authorization methods</h2>
+
+      <h3 id="sp-vs-mi">Service principal vs managed identity</h3>
+      <p>The most heavily tested comparison in the domain. Both are Microsoft Entra identities that non-human workloads use to authenticate to Azure.</p>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th></th><th>Service principal</th><th>Managed identity</th></tr></thead>
+          <tbody>
+            <tr><td>What it is</td><td>An app identity in Entra ID (the local instance of an app registration)</td><td>An Azure-managed service principal you never see the credentials for</td></tr>
+            <tr><td>Credentials</td><td>Client secret or certificate — <strong>you</strong> store and rotate them</td><td><strong>None to manage</strong> — Azure rotates automatically</td></tr>
+            <tr><td>Works from</td><td>Anywhere (other clouds, on-prem, external CI)</td><td><strong>Only from an Azure resource</strong> that supports it</td></tr>
+            <tr><td>Federation (OIDC)</td><td>✅ workload identity federation — no secret</td><td>✅ (system-assigned, inherently federated)</td></tr>
+            <tr><td>Types</td><td>One kind</td><td><strong>System-assigned</strong> and <strong>user-assigned</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th></th><th>System-assigned MI</th><th>User-assigned MI</th></tr></thead>
+          <tbody>
+            <tr><td>Lifecycle</td><td>Tied to one resource; deleted with it</td><td>Standalone resource; independent lifecycle</td></tr>
+            <tr><td>Sharing</td><td>1:1 — one identity, one resource</td><td>Assignable to <strong>many</strong> resources</td></tr>
+            <tr><td>Pre-provision before the resource exists</td><td>No</td><td>Yes</td></tr>
+            <tr><td>Best for</td><td>A single, self-contained resource</td><td>Many resources needing the same permissions; stable identity across redeploys</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — the decision tree</p>
+        <p><strong>Runs inside Azure and calls Azure services</strong> → <strong>managed identity</strong> (no secret to leak). <strong>Many resources need the same role, or you must pre-create the identity</strong> → <strong>user-assigned</strong>. <strong>One dedicated resource</strong> → <strong>system-assigned</strong>. <strong>Runs outside Azure</strong> (GitHub Actions, external CI, another cloud) → <strong>service principal</strong>, ideally with <strong>workload identity federation</strong> so there is still no stored secret.</p>
+      </div>
+
+      <h3 id="github-auth">GitHub authentication</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Method</th><th>Identity</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GitHub App</strong></td><td>Its own identity, fine-grained repo/org permissions, high rate limits</td><td><span class="pill p-green">Recommended</span> for integrations and automation</td></tr>
+            <tr><td><strong><code>GITHUB_TOKEN</code></strong></td><td>Auto-generated per workflow run, scoped to the repo, expires at run end</td><td>Actions working within the same repository</td></tr>
+            <tr><td><strong>Fine-grained PAT</strong></td><td>A user, scoped to specific repos, mandatory expiry</td><td>Personal/cross-repo scripts when an App is overkill</td></tr>
+            <tr><td><strong>Classic PAT</strong></td><td>A user, coarse scopes</td><td>Legacy — avoid</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> least-privilege GITHUB_TOKEN</div>
+        <pre class="code"><code>permissions:            <span class="cm"># start from nothing, grant only what's needed</span>
+  contents: read
+  pull-requests: write
+  id-token: write       <span class="cm"># enables OIDC to Azure / cloud providers</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — GITHUB_TOKEN vs App vs PAT</p>
+        <p><strong>Same repo, from a workflow</strong> → <code>GITHUB_TOKEN</code> (zero setup, auto-expires). <strong>Cross-repo or a third-party integration acting as a service</strong> → <strong>GitHub App</strong> (not tied to a person, higher limits). A <strong>PAT</strong> ties automation to an individual and is the answer only when neither of the above fits. Default-deny permissions and grant per workflow.</p>
+      </div>
+
+      <h3 id="ado-auth">Azure DevOps authentication</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Service connection type</th><th>Connects to</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Azure Resource Manager</strong></td><td>Azure subscriptions — <strong>prefer workload identity federation</strong></td></tr>
+            <tr><td><strong>Docker Registry</strong></td><td>ACR, Docker Hub</td></tr>
+            <tr><td><strong>Kubernetes</strong></td><td>AKS or any cluster</td></tr>
+            <tr><td><strong>GitHub</strong></td><td>GitHub repositories</td></tr>
+            <tr><td><strong>Generic / SSH</strong></td><td>REST APIs, custom services, SSH targets</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">Prefer workload identity federation for the ARM connection</p>
+        <p>An ARM service connection using <strong>workload identity federation</strong> stores <strong>no secret or certificate</strong> — Entra ID trusts a short-lived token issued to the pipeline. It is the recommended default: nothing to rotate, nothing to leak. Fall back to a service-principal secret only where federation is not supported, and use a <strong>managed identity</strong> connection when the agent runs on an Azure VM.</p>
+      </div>
+
+      <h3 id="permissions">Permissions, roles and access levels</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Azure DevOps group</th><th>Scope</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Project Collection Administrators</strong></td><td>Organization-wide control</td></tr>
+            <tr><td><strong>Project Administrators</strong></td><td>Full control within a project</td></tr>
+            <tr><td><strong>Contributors</strong></td><td>Read/write most project resources</td></tr>
+            <tr><td><strong>Readers</strong></td><td>Read-only</td></tr>
+            <tr><td><strong>Build / Release Administrators</strong></td><td>Manage pipelines / releases</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Azure DevOps access level</th><th>Grants</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Stakeholder</strong> <span class="pill p-green">free</span></td><td>Work items, dashboards, view pipelines — <strong>no repo/code access</strong>, no Test Plans</td></tr>
+            <tr><td><strong>Basic</strong></td><td>Full access to Repos, Pipelines, Artifacts, Boards</td></tr>
+            <tr><td><strong>Basic + Test Plans</strong></td><td>Basic plus the Test Plans feature</td></tr>
+            <tr><td><strong>Visual Studio subscriber</strong></td><td>Entitlement via a VS subscription</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Stakeholder access and outside collaborators</p>
+        <p><strong>Stakeholder</strong> is the free Azure DevOps access level for non-technical people who need Boards/dashboards but <strong>not code</strong> — the answer to "give the product owner backlog access at no cost". On GitHub, an <strong>outside collaborator</strong> is a non-org member granted access to specific repos; prefer <strong>teams</strong> for manageability, and remember <strong>Deny wins</strong> in Azure DevOps while the <strong>highest permission wins</strong> in GitHub (from <a href="../domain-2-source-control/#permissions">Domain 2</a>).</p>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Projects and teams in Azure DevOps</p>
+        <p>An <strong>organization</strong> contains <strong>projects</strong>; each project contains <strong>teams</strong> (each with its own backlog, boards and area/iteration paths). Use one project with multiple teams for related work that shares process and reporting; use separate projects for hard security or process boundaries. Security groups and permissions are configured at org, project and object level.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="secrets"><span class="num">4.2</span> Managing sensitive information in automation</h2>
+
+      <h3 id="key-vault">Azure Key Vault</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Object</th><th>Stores</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Secrets</strong></td><td>Passwords, connection strings, API keys</td></tr>
+            <tr><td><strong>Keys</strong></td><td>RSA/EC keys for encryption &amp; signing (wrap/unwrap, sign/verify)</td></tr>
+            <tr><td><strong>Certificates</strong></td><td>TLS/SSL certs with lifecycle &amp; auto-renewal (integrates with issuers)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
+          <tbody>
+            <tr><td>Secrets, certs, software-protected keys</td><td>✅</td><td>✅</td></tr>
+            <tr><td><strong>HSM-backed keys</strong> (FIPS 140-2 Level 2)</td><td>❌</td><td>✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — RBAC over access policies; HSM only in Premium</p>
+        <p>Use the <strong>Azure RBAC</strong> permission model (fine-grained, auditable, roles like <em>Key Vault Secrets User</em>) rather than the legacy <strong>vault access policies</strong> (all-or-nothing per operation). <strong>HSM-backed keys require the Premium SKU</strong>; for a customer-managed key that Microsoft can never extract, that is the answer. Enable <strong>soft-delete and purge protection</strong> (soft-delete is on by default) so a deleted secret can be recovered.</p>
+      </div>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d4)">
+          <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> AzureKeyVault task</div>
+          <pre class="code"><code>- task: AzureKeyVault@2
+  inputs:
+    azureSubscription: 'MyServiceConnection'
+    KeyVaultName: 'my-kv'
+    SecretsFilter: 'DbPassword,ApiKey'
+    RunAsPreJob: true      <span class="cm"># fetch before steps run</span>
+
+- script: ./deploy.sh
+  env:
+    DB_PASSWORD: $(DbPassword)   <span class="cm"># masked in logs</span></code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d4)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> fetch via Azure CLI (OIDC)</div>
+          <pre class="code"><code>- uses: azure/login@v2
+  with:
+    client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+    tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+    subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+- run: |
+    echo "DB_PASSWORD=$(az keyvault secret show \
+      --vault-name my-kv --name DbPassword \
+      --query value -o tsv)" &gt;&gt; "$GITHUB_ENV"</code></pre>
+        </div>
+      </div>
+
+      <h3 id="oidc">Secretless authentication — OIDC / workload identity federation</h3>
+      <p>The modern answer to "deploy to Azure from CI without storing a credential." The CI platform issues a <strong>short-lived OIDC token</strong>; Entra ID is configured to <strong>trust</strong> tokens from that specific repo/branch/environment and exchanges it for an Azure access token. No secret exists to steal or rotate.</p>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+sequenceDiagram
+  participant W as CI job (GitHub/ADO)
+  participant I as OIDC issuer
+  participant E as Microsoft Entra ID
+  participant A as Azure resource
+  W->>I: request OIDC token (subject = repo:org/app:ref)
+  I-->>W: signed short-lived JWT
+  W->>E: present JWT to federated credential
+  E-->>W: Azure access token (if subject matches trust)
+  W->>A: call Azure with the access token
+        </div>
+        <div class="mm-cap">Federated identity: trust is scoped to a subject (repo + branch/environment), so a token from elsewhere is rejected.</div>
+      </div>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> passwordless Azure login</div>
+        <pre class="code"><code>permissions:
+  id-token: write        <span class="cm"># REQUIRED to request the OIDC token</span>
+  contents: read
+
+steps:
+  - uses: azure/login@v2
+    with:
+      client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+      tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+      subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      <span class="cm"># no client-secret — Entra federated credential trusts this repo/branch</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — OIDC needs <code>id-token: write</code> and a scoped subject</p>
+        <p>Two things the exam checks: the workflow must grant <code>permissions: id-token: write</code>, and the Entra <strong>federated credential's subject must match</strong> the exact repo and ref/environment (e.g. <code>repo:org/app:ref:refs/heads/main</code> or <code>repo:org/app:environment:production</code>). A mismatch is why "the OIDC login is rejected" — the fix is aligning the subject, never adding a secret back.</p>
+      </div>
+
+      <h3 id="pipeline-secrets">Secrets in pipelines and Actions</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Scope</th><th>Azure Pipelines</th><th>GitHub Actions</th></tr></thead>
+          <tbody>
+            <tr><td>Single pipeline/repo</td><td>Secret pipeline variable (lock icon)</td><td>Repository secret</td></tr>
+            <tr><td>Shared across pipelines/repos</td><td>Variable group (optionally Key Vault-linked)</td><td>Organization secret</td></tr>
+            <tr><td>Per deployment target</td><td>Variables on the environment</td><td><strong>Environment secret</strong> (behind required reviewers)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> passing a secret safely</div>
+        <pre class="code"><code>steps:
+  - script: echo "$(publicVar)"       <span class="cm"># fine</span>
+  - script: echo "$(mySecret)"         <span class="cm"># prints *** — masked, but don't do this</span>
+
+  <span class="cm"># Correct: map the secret into the process environment explicitly</span>
+  - script: ./deploy.sh
+    env:
+      API_KEY: $(mySecret)             <span class="cm"># secrets are NOT auto-injected as env vars</span></code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — secret variables aren't auto-exposed</p>
+        <p>Unlike normal variables, <strong>secret variables are not automatically available as environment variables</strong> to scripts — you must map them in explicitly under <code>env:</code>. Both platforms mask registered secrets in logs (<code>***</code>), but masking is best-effort: transformed or base64-encoded values can slip through, so never deliberately print them. Secrets are <strong>not passed to fork PR builds</strong>.</p>
+      </div>
+
+      <h3 id="secure-files">Azure Pipelines secure files</h3>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> DownloadSecureFile</div>
+        <pre class="code"><code>- task: DownloadSecureFile@1
+  name: cert                        <span class="cm"># reference by this name</span>
+  inputs:
+    secureFile: 'signing-cert.p12'
+
+- script: |
+    echo "Cert at $(cert.secureFilePath)"
+    # import / sign using the temp path; the file is deleted after the job</code></pre>
+      </div>
+      <p><strong>Secure files</strong> store signing certificates, provisioning profiles, key files and the like outside source control, with per-pipeline authorization. They live in the Library and are removed from the agent when the job ends.</p>
+
+      <h3 id="prevent-leak">Preventing secret leakage</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Vector</th><th>Control</th></tr></thead>
+          <tbody>
+            <tr><td>Secret committed to Git</td><td>Pre-commit hooks (<code>gitleaks</code>, <code>detect-secrets</code>) + <strong>push protection</strong></td></tr>
+            <tr><td>Secret in a PR diff</td><td>Secret scanning blocks the push; Advanced Security alerts</td></tr>
+            <tr><td>Secret printed in logs</td><td>Auto-masking of registered secrets; never <code>echo</code> them</td></tr>
+            <tr><td>Secret baked into an artifact/image</td><td>Scan artifacts and images; use build-time secrets, not <code>ENV</code> layers</td></tr>
+            <tr><td>Secret in env-var dumps</td><td>Limit diagnostic logging; use secure files/Key Vault</td></tr>
+            <tr><td>Long-lived credentials</td><td>Replace with <strong>OIDC / managed identity</strong>; rotate what remains</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">Designing pipelines to not leak</p>
+        <p>Fetch secrets at the last moment (Key Vault at runtime), scope them to environments, never write them to artifacts, and prefer <strong>secretless</strong> auth so there is nothing to leak. If a secret <em>is</em> exposed, the response is the incident flow from <a href="../domain-2-source-control/#removing-data">Domain 2</a>: <strong>rotate first</strong>, then rewrite history.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="scanning"><span class="num">4.3</span> Automate security &amp; compliance scanning</h2>
+
+      <h3 id="shift-left">The shift-left model</h3>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+flowchart LR
+  IDE["IDE<br/>linting · secrets"] --> PR["PR / CI<br/>SAST · SCA · secret scan"]
+  PR --> BUILD["Build<br/>SBOM · license check"]
+  BUILD --> DEP["Deploy<br/>image scan · IaC scan"]
+  DEP --> RUN["Runtime<br/>DAST · CSPM · Defender"]
+        </div>
+        <div class="mm-cap">The earlier a finding is caught, the cheaper it is to fix — push every scan as far left as it will go.</div>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Scan</th><th>Finds</th><th>When</th></tr></thead>
+          <tbody>
+            <tr><td><strong>SAST</strong> (static)</td><td>Vulnerabilities in your source code</td><td>PR / build (CodeQL)</td></tr>
+            <tr><td><strong>DAST</strong> (dynamic)</td><td>Vulnerabilities in the running app</td><td>Against staging</td></tr>
+            <tr><td><strong>SCA</strong> (composition)</td><td>Vulnerable / mis-licensed dependencies</td><td>PR / build (Dependabot, dependency review)</td></tr>
+            <tr><td><strong>Secret scanning</strong></td><td>Committed credentials</td><td>Push / commit</td></tr>
+            <tr><td><strong>Container scanning</strong></td><td>CVEs in base images and OS packages</td><td>Build / registry (Defender, Trivy)</td></tr>
+            <tr><td><strong>IaC scanning</strong></td><td>Insecure infrastructure config</td><td>PR (PSRule, checkov)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">The four scan categories in the skills measured</p>
+        <p>The objective names them explicitly: <strong>dependency, code, secret, and licensing</strong> scanning. Map each to a tool — dependency → Dependabot/SCA, code → CodeQL, secret → secret scanning, licensing → dependency review / SCA license policy.</p>
+      </div>
+
+      <h3 id="ghas">GitHub Advanced Security (GHAS)</h3>
+      <div class="table-wrap">
+        <table class="tbl t-red">
+          <thead><tr><th>Feature</th><th>Does</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Code scanning (CodeQL)</strong></td><td>SAST — semantic analysis for security bugs</td></tr>
+            <tr><td><strong>Secret scanning</strong> + <strong>push protection</strong></td><td>Detects committed secrets; push protection <strong>blocks the push</strong></td></tr>
+            <tr><td><strong>Dependency review</strong></td><td>Shows vulnerable/newly-added dependencies in the PR diff</td></tr>
+            <tr><td><strong>Dependabot alerts</strong></td><td>Notifies on dependencies with known CVEs</td></tr>
+            <tr><td><strong>Dependabot security / version updates</strong></td><td>Opens PRs to patch or refresh dependencies</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">GitHub Actions</span> CodeQL analysis</div>
+        <pre class="code"><code>name: CodeQL
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+  schedule: [ { cron: '0 2 * * 1' } ]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write        <span class="cm"># upload results to the Security tab</span>
+      contents: read
+    strategy:
+      matrix:
+        language: [javascript, python, csharp]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3</code></pre>
+      </div>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — GHAS for Azure DevOps</p>
+        <p><strong>GitHub Advanced Security is available for Azure DevOps too</strong> — it brings CodeQL, secret scanning (with push protection on Azure Repos) and dependency scanning to Azure Repos and Pipelines, surfaced in the <em>Advanced Security</em> tab. This is exactly the kind of GitHub-into-Azure-DevOps convergence the July 2026 refresh leans on. Don't assume GHAS is GitHub-only.</p>
+      </div>
+      <div class="code-block" style="--accent:var(--d4)">
+        <div class="code-head"><span class="ch-tag">azure-pipelines.yml</span> Advanced Security for Azure DevOps</div>
+        <pre class="code"><code>- task: AdvancedSecurity-Codeql-Init@1
+  inputs: { languages: 'csharp' }
+- task: AdvancedSecurity-Dependency-Scanning@1
+- task: AdvancedSecurity-Codeql-Analyze@1
+<span class="cm"># Secret scanning + push protection are enabled in Project/Repo settings</span></code></pre>
+      </div>
+
+      <h3 id="defender">Microsoft Defender for Cloud — DevOps security</h3>
+      <p>Provides a <strong>single security posture view</strong> across Azure DevOps, GitHub and GitLab.</p>
+      <ul>
+        <li>Connects your repos via <em>Defender for Cloud → Environment settings → DevOps</em>.</li>
+        <li>Surfaces exposed secrets, IaC misconfigurations, dependency and code-scanning findings and container CVEs in one dashboard.</li>
+        <li><strong>Pull-request annotations</strong> comment findings directly on the PR.</li>
+        <li><strong>Integrates GHAS results</strong> — enable GHAS on the repos, connect the org to Defender for Cloud, and code/secret/Dependabot findings flow into the unified view.</li>
+      </ul>
+      <div class="callout exam">
+        <p class="ct-title">Caveat — Defender for Cloud vs GHAS</p>
+        <p><strong>GHAS</strong> is the scanning engine (CodeQL, secret scanning, dependency review) living <em>in</em> the repo. <strong>Defender for Cloud DevOps security</strong> is the <em>aggregation and posture-management</em> layer across many repos/orgs and clouds. "Unified security posture across GitHub and Azure DevOps in one pane" → <strong>Defender for Cloud</strong>. "Block a secret at push time" → <strong>GHAS secret scanning push protection</strong>.</p>
+      </div>
+
+      <h3 id="containers">Container and dependency scanning</h3>
+      <div class="compare">
+        <div class="code-block" style="--accent:var(--d4)">
+          <div class="code-head"><span class="ch-tag">GitHub Actions</span> Trivy image scan → Security tab</div>
+          <pre class="code"><code>- run: docker build -t myapp:${{ github.sha }} .
+
+- uses: aquasecurity/trivy-action@master
+  with:
+    image-ref: 'myapp:${{ github.sha }}'
+    format: sarif
+    output: trivy.sarif
+    severity: 'CRITICAL,HIGH'
+    exit-code: '1'          <span class="cm"># fail the build on findings</span>
+
+- uses: github/codeql-action/upload-sarif@v3
+  with: { sarif_file: trivy.sarif }</code></pre>
+        </div>
+        <div class="code-block" style="--accent:var(--d4)">
+          <div class="code-head"><span class="ch-tag">.github/dependabot.yml</span> SCA automation</div>
+          <pre class="code"><code>version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 10
+  - package-ecosystem: nuget
+    directory: "/src"
+    schedule: { interval: daily }
+  - package-ecosystem: docker
+    directory: "/"
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions   <span class="cm"># keep pinned actions current</span>
+    directory: "/"
+    schedule: { interval: weekly }</code></pre>
+        </div>
+      </div>
+      <div class="callout note">
+        <p class="ct-title">SARIF is the universal format</p>
+        <p>Any scanner that emits <strong>SARIF</strong> can upload results to the GitHub <em>Security</em> tab (or Azure DevOps Advanced Security) via <code>upload-sarif</code>, so third-party tools (Trivy, Semgrep, tfsec) appear alongside CodeQL. "Surface a non-GitHub scanner's results in GitHub" → <strong>upload the SARIF file</strong>.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>CVSS score</th><th>Severity</th></tr></thead>
+          <tbody>
+            <tr><td>9.0–10.0</td><td><span class="pill p-red">Critical</span></td></tr>
+            <tr><td>7.0–8.9</td><td><span class="pill p-orange">High</span></td></tr>
+            <tr><td>4.0–6.9</td><td><span class="pill p-amber">Medium</span></td></tr>
+            <tr><td>0.1–3.9</td><td><span class="pill p-gray">Low</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <p class="ct-title">CodeQL in a container build</p>
+        <p>For compiled languages CodeQL must <strong>observe the build</strong> to analyse it. When the build runs in a container, use <code>github/codeql-action/autobuild</code> (or a manual build inside the same container step) so CodeQL traces the compilation — otherwise it has nothing to analyse.</p>
+      </div>
+
+      <!-- ============================================================= -->
+      <h2 id="recap">Domain 4 rapid recap</h2>
+      <div class="table-wrap">
+        <table class="tbl t-slate">
+          <thead><tr><th>The requirement says…</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Azure resource calls another Azure service, no secrets</td><td><strong>Managed identity</strong></td></tr>
+            <tr><td>Many resources need the same permissions</td><td><strong>User-assigned managed identity</strong></td></tr>
+            <tr><td>Deploy to Azure from GitHub Actions with no secret</td><td><strong>OIDC / workload identity federation</strong> + <code>id-token: write</code></td></tr>
+            <tr><td>OIDC login rejected</td><td>Fix the Entra <strong>federated credential subject</strong> to match repo/ref</td></tr>
+            <tr><td>Automation runs outside Azure</td><td><strong>Service principal</strong> (federated if possible)</td></tr>
+            <tr><td>Store connection strings for a pipeline securely</td><td><strong>Key Vault</strong> → variable group / <code>AzureKeyVault@2</code></td></tr>
+            <tr><td>Customer-managed key Microsoft can't extract</td><td><strong>HSM-backed key</strong> — Key Vault <strong>Premium</strong></td></tr>
+            <tr><td>Block a secret at push time</td><td><strong>GHAS secret scanning push protection</strong></td></tr>
+            <tr><td>SAST in PR reviews on GitHub</td><td><strong>CodeQL</strong> (code scanning)</td></tr>
+            <tr><td>Auto-patch vulnerable npm packages</td><td><strong>Dependabot security updates</strong></td></tr>
+            <tr><td>Scan container images for CVEs in CI</td><td><strong>Trivy</strong> / <strong>Defender for Containers</strong></td></tr>
+            <tr><td>Unified security view across GitHub + Azure DevOps</td><td><strong>Defender for Cloud — DevOps security</strong></td></tr>
+            <tr><td>Show a third-party scanner's results in GitHub</td><td>Upload the <strong>SARIF</strong> file</td></tr>
+            <tr><td>Store a code-signing cert for the pipeline</td><td><strong>Secure files</strong></td></tr>
+            <tr><td>Free Boards access for a product owner</td><td><strong>Stakeholder</strong> access level</td></tr>
+            <tr><td>Protect prod credentials from PR workflows</td><td><strong>Environment secrets</strong> behind required reviewers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <a class="prev" href="../domain-3-pipelines/maintain/"><div class="pg-dir">← Previous</div><div class="pg-title">3.6 · Maintain pipelines</div></a>
+        <a class="next" href="../domain-5-instrumentation/"><div class="pg-dir">Next →</div><div class="pg-title">Domain 5 · Instrumentation strategy</div></a>
+      </div>
+
+    </main>
+  </div>
+  <script src="../assets/js/main.js"></script>
+</body>
+</html>
