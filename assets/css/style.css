@@ -444,7 +444,6 @@ ol.steps > li::before { counter-increment: step; content: counter(step); positio
 @media (max-width: 760px) {
   .hero { padding: 36px 24px; }
   .hero h1 { font-size: 1.9rem; }
-  .brand .brand-full { display: none; }
   .ghub-link span { display: none; }
 }
 
