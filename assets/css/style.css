@@ -407,6 +407,9 @@ ol.steps > li::before { counter-increment: step; content: counter(step); positio
 .footer-inner .support-btn svg { width: 16px; height: 16px; flex: none; }
 .footer-inner .support-btn--star { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
 .footer-inner .support-btn--star:hover { border-color: var(--ms-blue); color: var(--text); }
+/* LinkedIn keeps its own brand colours in both themes. */
+.footer-inner .support-btn--linkedin { background: #0a66c2; border-color: #0a66c2; color: #fff; }
+.footer-inner .support-btn--linkedin:hover { background: #1275d1; border-color: #1275d1; color: #fff; }
 .footer-inner .contrib-note a { display: inline; padding: 0; font-size: inherit; color: var(--ms-blue); text-decoration: underline; }
 .footer-bottom { max-width: var(--maxw); margin: 28px auto 0; padding-top: 18px; border-top: 1px solid var(--border);
   font-size: .82rem; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
