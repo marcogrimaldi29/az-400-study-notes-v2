@@ -52,6 +52,9 @@
   // Resolve a page href against ROOT, never yielding an empty href.
   function pageHref(href) { return (ROOT + href) || "./"; }
 
+  var REPO_URL = "https://github.com/marcogrimaldi29/az-400-study-notes-v2";
+  var GITHUB_ICON = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>';
+
   // ---------- THEME ----------
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
@@ -100,7 +103,7 @@
       "</a>" +
       '<nav class="top-nav" id="top-nav">' + nav + "</nav>" +
       '<div class="header-tools">' +
-        '<a class="ghub-link" href="https://github.com/marcogrimaldi29/az-400-study-notes-v2/" target="_blank" rel="noopener" title="Star on GitHub">★ <span>on</span> <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>' +
+        '<a class="ghub-link" href="' + REPO_URL + '/" target="_blank" rel="noopener" title="Star on GitHub">★ <span>on</span> ' + GITHUB_ICON + '</a>' +
       "</div>";
     document.body.insertBefore(header, document.body.firstChild);
 
@@ -137,14 +140,19 @@
               '<div class="ac-name">Marco Grimaldi</div>' +
               '<div class="ac-role">Cloud Solution Architect</div>' +
               '<div class="author-links">' +
-                '<a href="https://github.com/marcogrimaldi29" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub</a>' +
+                '<a href="https://github.com/marcogrimaldi29" target="_blank" rel="noopener">' + GITHUB_ICON + ' GitHub</a>' +
                 '<a href="https://www.linkedin.com/in/marco-grimaldi29/" target="_blank" rel="noopener">in LinkedIn</a>' +
                 '<a href="https://marcogrimaldi29.com/" target="_blank" rel="noopener"><img src="' + ROOT + 'assets/images/site-mark-no-bg.png" alt="" width="16" height="16" style="display:block"> Website</a>' +
               "</div>" +
             "</div>" +
           "</div>" +
-          '<div class="star-cta">⭐ Found these notes helpful? <strong>Star the repo on GitHub</strong> to support the project and help others find it.</div>' +
-          '<div class="contrib-note">🐞 <strong>Spotted an error?</strong> If something is wrong or out of date, please open an issue on GitHub.</div>' +
+          '<div class="star-cta">' +
+            '<p>⭐ <strong>Found these notes helpful?</strong> Star the repo on GitHub to support the project and help others find it.</p>' +
+            '<div class="support-actions">' +
+              '<a class="support-btn support-btn--star" href="' + REPO_URL + '" target="_blank" rel="noopener">' + GITHUB_ICON + ' Star on GitHub</a>' +
+            "</div>" +
+          "</div>" +
+          '<div class="contrib-note">🐞 <strong>Spotted an error?</strong> If something is wrong or out of date, please <a href="' + REPO_URL + '/issues" target="_blank" rel="noopener">open an issue on GitHub</a>.</div>' +
         "</div>" +
         '<div class="footer-col">' +
           "<h5>Skill Domains</h5>" +
