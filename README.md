@@ -77,7 +77,8 @@ Part of a wider collection of certification reviews and study notes on my person
 ## 💚 Support
 
 If these notes helped you, there are a few ways to show it: ⭐ star this repo on GitHub,
-🤝 connect with me on LinkedIn, or ☕ support me with a coffee. Coffees help me stay productive while studying and reviewing new certifications on [marcogrimaldi29.com](https://marcogrimaldi29.com/cert-reviews/) 🏅.
+🤝 connect with me on LinkedIn, or ☕ support me with a coffee — the caffeine keeps me productive and the
+notes coming ⚡.
 
 <p>
   <a href="https://github.com/marcogrimaldi29/az-400-study-notes-v2"><img src="https://img.shields.io/badge/Star_on_GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Star on GitHub" /></a>
