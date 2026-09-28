@@ -144,7 +144,7 @@
             "</div>" +
           "</div>" +
           '<div class="star-cta">⭐ Found these notes helpful? <strong>Star the repo on GitHub</strong> to support the project and help others find it.</div>' +
-          '<div class="contrib-note">🤝 <strong>Open to collaboration.</strong> Contributions, corrections and pull requests from the community are welcome — feel free to open an issue or PR on GitHub.</div>' +
+          '<div class="contrib-note">🐞 <strong>Spotted an error?</strong> If something is wrong or out of date, please open an issue on GitHub.</div>' +
         "</div>" +
         '<div class="footer-col">' +
           "<h5>Skill Domains</h5>" +
@@ -276,25 +276,34 @@
     if (!window.mermaid) return;
     var nodes = document.querySelectorAll(".mermaid");
     if (!nodes.length) return;
+    // Keep the source as serialized HTML (not textContent): restoring it via
+    // innerHTML then round-trips exactly, so escaped text like &lt; can never
+    // turn into live markup, and <br/> line breaks survive a theme switch.
     if (reRender) {
       nodes.forEach(function (n) {
         if (n.getAttribute("data-src")) { n.removeAttribute("data-processed"); n.innerHTML = n.getAttribute("data-src"); }
       });
     } else {
-      nodes.forEach(function (n) { if (!n.getAttribute("data-src")) n.setAttribute("data-src", n.textContent.trim()); });
+      nodes.forEach(function (n) { if (!n.getAttribute("data-src")) n.setAttribute("data-src", n.innerHTML.trim()); });
     }
     window.mermaid.initialize({
-      startOnLoad: false, theme: mermaidTheme(), securityLevel: "loose",
+      startOnLoad: false, theme: mermaidTheme(), securityLevel: "strict",
       fontFamily: '"Segoe UI", system-ui, sans-serif',
       flowchart: { curve: "basis", useMaxWidth: true }
     });
     try { window.mermaid.run({ nodes: nodes }); } catch (e) { console.warn("mermaid", e); }
     window.__mermaidReady = true;
   }
+  // Pinned to an exact version with a Subresource Integrity hash: the browser
+  // refuses to run the file if the CDN ever serves different bytes. When
+  // upgrading, take the new hash from
+  // https://data.jsdelivr.com/v1/packages/npm/mermaid@<version>?structure=flat
   function loadMermaid() {
     if (!document.querySelector(".mermaid")) return;
     var s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+    s.src = "https://cdn.jsdelivr.net/npm/mermaid@10.9.8/dist/mermaid.min.js";
+    s.integrity = "sha256-jWB9fvHQd6iqIC4Y5iISv6mSxov+q8XPRdUaEo/mZ10=";
+    s.crossOrigin = "anonymous";
     s.onload = function () { renderMermaid(false); };
     document.head.appendChild(s);
   }

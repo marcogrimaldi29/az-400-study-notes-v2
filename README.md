@@ -10,7 +10,7 @@ This is **version 2**: a full rebuild of the original AZ-400 notes, migrated off
 
 ### 👉 [Read the notes online](https://marcogrimaldi29.com/az-400-study-notes-v2/)
 
-> ⭐ **If these notes help you, please [star the repo](https://github.com/marcogrimaldi29)** — it supports the project and helps other learners find it.
+> ⭐ **If these notes help you, please [star the repo](https://github.com/marcogrimaldi29/az-400-study-notes-v2)** — it supports the project and helps other learners find it.
 
 ---
 
@@ -71,9 +71,9 @@ Deployed to **GitHub Pages** via the workflow in `.github/workflows/deploy-pages
 
 ---
 
-## 🤝 Contributing
+## 🐞 Reporting issues
 
-Spotted an error, an outdated detail, or have an improvement? **Contributions are welcome** — open an [issue](https://github.com/marcogrimaldi29) or a pull request. Corrections that keep the notes accurate against the latest Microsoft documentation are especially appreciated.
+Spotted an error or an outdated detail? Please **[open an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** describing what's wrong — ideally with a link to the relevant Microsoft documentation.
 
 ---
 
