@@ -10,8 +10,6 @@ This is **version 2**: a full rebuild of the original AZ-400 notes, migrated off
 
 ### 👉 [Read the notes online](https://marcogrimaldi29.com/az-400-study-notes-v2/)
 
-> ⭐ **If these notes help you, please [star the repo](https://github.com/marcogrimaldi29/az-400-study-notes-v2)** — it supports the project and helps other learners find it.
-
 ---
 
 ## ⚠️ Disclaimer
@@ -56,9 +54,9 @@ The site uses **[Umami](https://umami.is/)** for **cookieless, privacy-respectin
 
 ---
 
-## 🐞 Reporting issues
+## 🐞 Spotted a mistake?
 
-Spotted an error or an outdated detail? Please **[open an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** describing what's wrong — ideally with a link to the relevant Microsoft documentation.
+Azure DevOps and GitHub change fast, so if something here is wrong or out of date, please **[report an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** — ideally with a link to the relevant Microsoft documentation.
 
 ---
 
@@ -76,8 +74,8 @@ Part of a wider collection of certification reviews and study notes on my person
 
 ## 💚 Support
 
-If these notes helped you, there are a couple of ways to show it: ⭐ star this repo on GitHub,
-or 🤝 connect with me on LinkedIn.
+If these notes helped you prepare for AZ-400, there are a couple of ways to show it: ⭐ star this repo on GitHub so other
+candidates can find it, or 🤝 connect with me on LinkedIn.
 
 <p>
   <a href="https://github.com/marcogrimaldi29/az-400-study-notes-v2"><img src="https://img.shields.io/badge/Star_on_GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Star on GitHub" /></a>
