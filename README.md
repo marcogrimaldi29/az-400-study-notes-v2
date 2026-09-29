@@ -10,8 +10,6 @@ This is **version 2**: a full rebuild of the original AZ-400 notes, migrated off
 
 ### 👉 [Read the notes online](https://marcogrimaldi29.com/az-400-study-notes-v2/)
 
-> ⭐ **If these notes help you, please [star the repo](https://github.com/marcogrimaldi29/az-400-study-notes-v2)** — it supports the project and helps other learners find it.
-
 ---
 
 ## ⚠️ Disclaimer
@@ -56,9 +54,9 @@ The site uses **[Umami](https://umami.is/)** for **cookieless, privacy-respectin
 
 ---
 
-## 🐞 Reporting issues
+## 🐞 Spotted a mistake?
 
-Spotted an error or an outdated detail? Please **[open an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** describing what's wrong — ideally with a link to the relevant Microsoft documentation.
+Azure DevOps and GitHub change fast, so if something here is wrong or out of date, please **[report an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** — ideally with a link to the relevant Microsoft documentation.
 
 ---
 
@@ -76,14 +74,13 @@ Part of a wider collection of certification reviews and study notes on my person
 
 ## 💚 Support
 
-If these notes helped you, there are a few ways to show it: ⭐ star this repo on GitHub,
-🤝 connect with me on LinkedIn, or ☕ support me with a coffee — the caffeine keeps me productive and the
-notes coming ⚡.
+If these notes helped you prepare for AZ-400, there are a few ways to show it: ⭐ star this repo on GitHub so other
+candidates can find it, 🤝 connect with me on LinkedIn, or ☕ support the work behind them with a coffee.
 
 <p>
   <a href="https://github.com/marcogrimaldi29/az-400-study-notes-v2"><img src="https://img.shields.io/badge/Star_on_GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Star on GitHub" /></a>
   <a href="https://www.linkedin.com/in/marco-grimaldi29/"><img src="https://img.shields.io/badge/Connect_on_LinkedIn-0A66C2?style=for-the-badge&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMC40NDcgMjAuNDUyaC0zLjU1NHYtNS41NjljMC0xLjMyOC0uMDI3LTMuMDM3LTEuODUyLTMuMDM3LTEuODUzIDAtMi4xMzYgMS40NDUtMi4xMzYgMi45Mzl2NS42NjdIOS4zNTFWOWgzLjQxNHYxLjU2MWguMDQ2Yy40NzctLjkgMS42MzctMS44NSAzLjM3LTEuODUgMy42MDEgMCA0LjI2NyAyLjM3IDQuMjY3IDUuNDU1djYuMjg2ek01LjMzNyA3LjQzM2EyLjA2MiAyLjA2MiAwIDAgMS0yLjA2My0yLjA2NSAyLjA2NCAyLjA2NCAwIDEgMSAyLjA2MyAyLjA2NXptMS43ODIgMTMuMDE5SDMuNTU1VjloMy41NjR2MTEuNDUyek0yMi4yMjUgMEgxLjc3MUMuNzkyIDAgMCAuNzc0IDAgMS43Mjl2MjAuNTQyQzAgMjMuMjI3Ljc5MiAyNCAxLjc3MSAyNGgyMC40NTFDMjMuMiAyNCAyNCAyMy4yMjcgMjQgMjIuMjcxVjEuNzI5QzI0IC43NzQgMjMuMiAwIDIyLjIyNSAweiIvPjwvc3ZnPg%3D%3D" alt="Connect on LinkedIn" /></a>
-  <a href="https://buymeacoffee.com/marcogrimaldi29"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy me a coffee" /></a>
+  <a href="https://buymeacoffee.com/marcogrimaldi29"><img src="https://img.shields.io/badge/Support_with_a_coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Support with a coffee" /></a>
 </p>
 
 ---

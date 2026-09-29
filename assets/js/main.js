@@ -151,14 +151,14 @@
             "</div>" +
           "</div>" +
           '<div class="star-cta">' +
-            '<p>⭐ <strong>Found these notes helpful?</strong> Starring the repo on GitHub means a lot — or connect with me on LinkedIn and let’s keep the motivation going. And if you’d like to chip in, support me with a coffee: the caffeine keeps me productive and the notes coming.</p>' +
+            '<p>⭐ <strong>Found these notes helpful?</strong> Starring the repo on GitHub helps other AZ-400 candidates find them, or connect with me on LinkedIn. And if you’d like to support the work behind them, you can do so with a coffee.</p>' +
             '<div class="support-actions">' +
-              '<a class="support-btn support-btn--star" href="' + REPO_URL + '" target="_blank" rel="noopener">' + GITHUB_ICON + ' Star on GitHub</a>' +
+              '<a class="support-btn support-btn--star" href="' + REPO_URL + '" target="_blank" rel="noopener">' + GITHUB_ICON + ' Star the repo on GitHub</a>' +
               '<a class="support-btn support-btn--linkedin" href="' + LINKEDIN_URL + '" target="_blank" rel="noopener">' + LINKEDIN_ICON + ' Connect on LinkedIn</a>' +
-              '<a class="support-btn support-btn--coffee" href="' + COFFEE_URL + '" target="_blank" rel="noopener">' + COFFEE_ICON + ' Buy me a coffee</a>' +
+              '<a class="support-btn support-btn--coffee" href="' + COFFEE_URL + '" target="_blank" rel="noopener">' + COFFEE_ICON + ' Support with a coffee</a>' +
             "</div>" +
           "</div>" +
-          '<div class="contrib-note">🐞 <strong>Spotted an error?</strong> If something is wrong or out of date, please <a href="' + REPO_URL + '/issues" target="_blank" rel="noopener">open an issue on GitHub</a>.</div>' +
+          '<div class="issue-note">🐞 <strong>Spotted a mistake?</strong> Azure DevOps and GitHub change fast, so if something here is wrong or out of date, please <a href="' + REPO_URL + '/issues" target="_blank" rel="noopener">report an issue on GitHub</a>.</div>' +
         "</div>" +
         '<div class="footer-col">' +
           "<h5>Skill Domains</h5>" +
