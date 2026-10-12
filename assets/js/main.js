@@ -283,19 +283,30 @@
   function mermaidTheme() {
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "neutral";
   }
+  // Each diagram's original source, kept as a detached DOM clone rather than an
+  // HTML string. Restoring it re-attaches copies of the original nodes, so no
+  // markup is ever re-parsed from page text (CodeQL js/xss-through-dom), escaped
+  // text like &lt; stays text, and <br/> line breaks survive a theme switch.
+  var mermaidSrc = new WeakMap();
   function renderMermaid(reRender) {
     if (!window.mermaid) return;
     var nodes = document.querySelectorAll(".mermaid");
     if (!nodes.length) return;
-    // Keep the source as serialized HTML (not textContent): restoring it via
-    // innerHTML then round-trips exactly, so escaped text like &lt; can never
-    // turn into live markup, and <br/> line breaks survive a theme switch.
     if (reRender) {
       nodes.forEach(function (n) {
-        if (n.getAttribute("data-src")) { n.removeAttribute("data-processed"); n.innerHTML = n.getAttribute("data-src"); }
+        var src = mermaidSrc.get(n);
+        if (!src) return;
+        n.removeAttribute("data-processed");
+        n.textContent = "";
+        n.appendChild(src.cloneNode(true));
       });
     } else {
-      nodes.forEach(function (n) { if (!n.getAttribute("data-src")) n.setAttribute("data-src", n.innerHTML.trim()); });
+      nodes.forEach(function (n) {
+        if (mermaidSrc.has(n)) return;
+        var range = document.createRange();
+        range.selectNodeContents(n);
+        mermaidSrc.set(n, range.cloneContents());
+      });
     }
     window.mermaid.initialize({
       startOnLoad: false, theme: mermaidTheme(), securityLevel: "strict",
