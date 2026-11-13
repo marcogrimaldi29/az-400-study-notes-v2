@@ -1,0 +1,20 @@
+# Dependabot version updates for the GitHub Actions in .github/workflows.
+#
+# The workflow pins every action to a full commit SHA, and Dependabot doesn't
+# raise alerts for SHA-pinned actions. Version updates still work with them:
+# each pull request bumps the SHA and the trailing "# vX.Y.Z" comment together.
+#
+# Mermaid is loaded from a CDN in assets/js/main.js, so it isn't covered here
+# and is upgraded by hand.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # One pull request for all action updates instead of one per action.
+    groups:
+      actions:
+        patterns:
+          - "*"
