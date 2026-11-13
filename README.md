@@ -56,7 +56,7 @@ The site uses **[Umami](https://umami.is/)** for **cookieless, privacy-respectin
 
 ## 🐞 Spotted a mistake?
 
-Azure DevOps and GitHub change fast, so if something here is wrong or out of date, please **[report an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** — ideally with a link to the relevant Microsoft documentation.
+Azure DevOps and GitHub change fast, so if something here is wrong or out of date, please **[report an issue](https://github.com/marcogrimaldi29/az-400-study-notes-v2/issues)** — ideally with a link to the relevant Microsoft documentation. The [contributing guide](.github/CONTRIBUTING.md) explains what makes a report quick to fix and what's out of scope.
 
 ---
 
