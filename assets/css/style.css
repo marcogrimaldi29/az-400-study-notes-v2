@@ -439,6 +439,17 @@ ol.steps > li::before { counter-increment: step; content: counter(step); positio
 .stat .s-num { font-size: 1.8rem; font-weight: 800; color: var(--accent, var(--ms-blue)); line-height: 1; }
 .stat .s-lbl { font-size: .82rem; color: var(--text-muted); margin-top: 6px; }
 
+/* ===================== Retirement banner ===================== */
+/* Injected under the header by main.js (same component as the MS-102 notes) */
+.retire-banner {
+  display: flex; align-items: flex-start; justify-content: center; gap: 10px;
+  padding: 9px 22px; font-size: .9rem; line-height: 1.5; color: var(--text);
+  background: color-mix(in srgb, var(--ms-orange) 11%, var(--surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--ms-orange) 35%, var(--border));
+}
+.retire-banner .rb-icon { flex: none; }
+.retire-banner a { font-weight: 600; white-space: nowrap; }
+
 /* ===================== Responsive ===================== */
 @media (max-width: 1180px) {
   .layout { grid-template-columns: 1fr; }
@@ -461,10 +472,11 @@ ol.steps > li::before { counter-increment: step; content: counter(step); positio
   .hero { padding: 36px 24px; }
   .hero h1 { font-size: 1.9rem; }
   .ghub-link span { display: none; }
+  .retire-banner { justify-content: flex-start; padding: 8px 16px; font-size: .84rem; }
 }
 
 @media print {
-  .site-header, .toc, .site-footer, .float-btn, .pager { display: none; }
+  .site-header, .retire-banner, .toc, .site-footer, .float-btn, .pager { display: none; }
   .layout { grid-template-columns: 1fr; }
   body { background: #fff; }
   .compare { grid-template-columns: 1fr; }

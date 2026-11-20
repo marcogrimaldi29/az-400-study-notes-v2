@@ -3,12 +3,18 @@
 [![Built with HTML/CSS/JS](https://img.shields.io/badge/Built%20with-HTML%20%C2%B7%20CSS%20%C2%B7%20JS-0078d4)](#)
 [![Exam](https://img.shields.io/badge/Exam-AZ--400-d83b01)](https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400)
 [![Live site](https://img.shields.io/badge/Read%20online-marcogrimaldi29.com-107c10)](https://marcogrimaldi29.com/az-400-study-notes-v2/)
+[![Retires](https://img.shields.io/badge/Retires-Feb%201%2C%202027-d83b01)](https://learn.microsoft.com/en-us/credentials/support/retired-certification-exams)
 
 Comprehensive, exam-focused study notes for the **Microsoft AZ-400: Designing and Implementing Microsoft DevOps Solutions** certification — a free, modern study companion to the official Microsoft documentation.
 
 This is **version 2**: a full rebuild of the original AZ-400 notes, migrated off Jekyll to a hand-built **HTML · CSS · JavaScript** static site that shares the design language of the [MS-102 study notes](https://marcogrimaldi29.com/ms-102-study-notes/). Content has been re-grounded and refreshed against the **skills measured effective July 27, 2026**.
 
 ### 👉 [Read the notes online](https://marcogrimaldi29.com/az-400-study-notes-v2/)
+
+> [!WARNING]
+> **AZ-400 retires on February 1, 2027.** Microsoft is retiring **Exam AZ-400**, the **Microsoft Certified: DevOps Engineer Expert** certification and its renewal assessment on that date. After it, you can't take the exam, earn the certification, or renew it. If you already hold it, it stays on the transcript in your Microsoft Learn profile. ([study guide](https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400) · [certification page](https://learn.microsoft.com/en-us/credentials/certifications/devops-engineer/) · [exam retirement](https://learn.microsoft.com/en-us/credentials/support/retired-certification-exams))
+>
+> **Successor:** [Exam AZ-401: Designing and Implementing Microsoft Agentic DevOps Solutions](https://learn.microsoft.com/en-us/credentials/certifications/exams/az-401/) (beta) leads to [Microsoft Certified: Agentic DevOps Engineer Expert](https://learn.microsoft.com/en-us/credentials/certifications/agentic-devops-engineer-expert/). Microsoft's [announcement](https://techcommunity.microsoft.com/blog/skills-hub-blog/new-microsoft-certified-agentic-devops-engineer-expert/4528356) says general availability is expected in December 2026, and that the new certification also requires AZ-104 or GH-300. These notes cover AZ-400 only. The [Resources page](https://marcogrimaldi29.com/az-400-study-notes-v2/resources/#retirement) has the details.
 
 ---
 
@@ -88,7 +94,9 @@ candidates can find it, or 🤝 connect with me on LinkedIn.
 
 - [AZ-400 Study Guide (Skills Measured)](https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400)
 - [Course AZ-400T00: Designing and Implementing Microsoft DevOps Solutions](https://learn.microsoft.com/en-us/training/courses/az-400t00)
-- [Free official practice assessment](https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/practice/assessment)
+- [Official practice assessment](https://aka.ms/AZ400-PA) on AI Skills Navigator (the [legacy version on Learn](https://aka.ms/AZ400-LearnPA) is no longer updated)
+- [Exam and assessment lab retirement](https://learn.microsoft.com/en-us/credentials/support/retired-certification-exams) · [Credential retirement](https://learn.microsoft.com/en-us/credentials/support/credential-retirement)
+- Successor: [AZ-401 Study Guide](https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-401) · [Microsoft Certified: Agentic DevOps Engineer Expert](https://learn.microsoft.com/en-us/credentials/certifications/agentic-devops-engineer-expert/)
 - [Azure DevOps documentation](https://learn.microsoft.com/en-us/azure/devops/)
 - [GitHub Actions documentation](https://docs.github.com/en/actions)
 

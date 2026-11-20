@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resources &amp; Study Plan — AZ-400</title>
-  <meta name="description" content="AZ-400 resources: exam facts and prerequisites, a weighted study plan, official Microsoft learning paths and documentation, hands-on practice ideas, and command/tooling quick reference.">
+  <meta name="description" content="AZ-400 resources: exam facts and prerequisites, the February 1, 2027 retirement and the AZ-401 successor, a weighted study plan, official Microsoft learning paths and documentation, hands-on practice ideas, and command/tooling quick reference.">
   <meta name="author" content="Marco Grimaldi">
   <link rel="canonical" href="https://marcogrimaldi29.com/az-400-study-notes-v2/resources/">
   <meta name="robots" content="index, follow">
@@ -46,19 +46,51 @@
             <tr><td><strong>Exam code</strong></td><td>AZ-400</td></tr>
             <tr><td><strong>Full name</strong></td><td>Designing and Implementing Microsoft DevOps Solutions</td></tr>
             <tr><td><strong>Certification</strong></td><td>Microsoft Certified: DevOps Engineer Expert</td></tr>
-            <tr><td><strong>Prerequisite</strong></td><td>AZ-104 <em>or</em> AZ-204 (needed for the certification, not to sit the exam)</td></tr>
+            <tr><td><strong>Prerequisite</strong></td><td>AZ-104 <em>or</em> AZ-204 (needed for the certification, not to sit the exam). The AZ-204 exam itself retired on July 31, 2026.</td></tr>
             <tr><td><strong>Passing score</strong></td><td>700 / 1000</td></tr>
             <tr><td><strong>Duration</strong></td><td>~120 minutes</td></tr>
             <tr><td><strong>Questions</strong></td><td>~40–60: multiple choice, case studies, drag-and-drop, build-list, hotspot, yes/no</td></tr>
             <tr><td><strong>Skills measured</strong></td><td>Effective July 27, 2026</td></tr>
-            <tr><td><strong>Renewal</strong></td><td>Annual, free online assessment on Microsoft Learn</td></tr>
+            <tr><td><strong>Renewal</strong></td><td>Annual, free online assessment on Microsoft Learn, available until the certification retires on February 1, 2027</td></tr>
+            <tr><td><strong>Retirement</strong></td><td><strong>February 1, 2027</strong>: the exam, the certification and its renewal assessment (<a href="#retirement">details</a>)</td></tr>
+            <tr><td><strong>Successor</strong></td><td>Exam AZ-401 → Microsoft Certified: Agentic DevOps Engineer Expert (beta)</td></tr>
           </tbody>
         </table>
       </div>
       <div class="callout warn">
         <p class="ct-title">The prerequisite catches people out</p>
-        <p>You can <em>take and pass</em> AZ-400 without holding AZ-104 or AZ-204, but the <strong>DevOps Engineer Expert certification is only issued once you also hold one of those associate certifications</strong>. Plan the pair.</p>
+        <p>You can <em>take and pass</em> AZ-400 without holding AZ-104 or AZ-204, but the <strong>DevOps Engineer Expert certification is only issued once you also hold one of those associate certifications</strong>. Plan the pair, and plan to finish both before AZ-400 retires on <strong>February 1, 2027</strong>: Microsoft says the certification can't be earned after that date. The AZ-204 exam retired on July 31, 2026, so it can no longer be taken. Check the <a href="https://learn.microsoft.com/en-us/credentials/certifications/devops-engineer/" target="_blank" rel="noopener">certification page</a> for the prerequisites currently accepted.</p>
       </div>
+
+      <!-- ===================== -->
+      <h2 id="retirement">AZ-400 retirement &amp; what's next</h2>
+      <div class="callout warn">
+        <p class="ct-title">Retirement: February 1, 2027</p>
+        <p>Microsoft is retiring <strong>Exam AZ-400</strong>, the <strong>Microsoft Certified: DevOps Engineer Expert</strong> certification and its <strong>renewal assessment</strong> on <strong>February 1, 2027</strong>.</p>
+        <p><strong>Still preparing?</strong> After that date you can no longer take the exam or earn the certification, so Microsoft recommends sitting it before then. Book a slot that leaves room for a retake if you need one.</p>
+        <p><strong>Already certified?</strong> The certification stays on the transcript in your Microsoft Learn profile. Renewal won't be possible after the retirement date, so if you're eligible to renew before then, Microsoft suggests doing so.</p>
+      </div>
+
+      <h3 id="successor">The successor: AZ-401</h3>
+      <p>Microsoft's <a href="https://techcommunity.microsoft.com/blog/skills-hub-blog/new-microsoft-certified-agentic-devops-engineer-expert/4528356" target="_blank" rel="noopener">announcement</a>, linked from the AZ-400 study guide, names the replacement as <strong>Exam AZ-401: Designing and Implementing Microsoft Agentic DevOps Solutions</strong>. It leads to the new <strong>Microsoft Certified: Agentic DevOps Engineer Expert</strong> certification.</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th></th><th>Retiring</th><th>Successor</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Exam</strong></td><td>AZ-400: Designing and Implementing Microsoft DevOps Solutions</td><td>AZ-401: Designing and Implementing Microsoft Agentic DevOps Solutions</td></tr>
+            <tr><td><strong>Certification</strong></td><td>Microsoft Certified: DevOps Engineer Expert</td><td>Microsoft Certified: Agentic DevOps Engineer Expert</td></tr>
+            <tr><td><strong>Status</strong></td><td>Retires February 1, 2027</td><td>In beta; general availability expected in December 2026</td></tr>
+            <tr><td><strong>Prerequisite</strong></td><td>Azure Administrator Associate (AZ-104) or Azure Developer Associate (AZ-204)</td><td>Azure Administrator Associate (AZ-104) or GitHub Copilot (GH-300)</td></tr>
+            <tr><td><strong>Study guide</strong></td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400" target="_blank" rel="noopener">AZ-400 study guide</a></td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-401" target="_blank" rel="noopener">AZ-401 study guide</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>AZ-401 keeps the same five skill areas but reweights them. Build and release pipelines drops from 50–55% to 35–40%. Processes and communications, security and compliance, and instrumentation each rise to 15–20%. Many objectives also expect you to work with AI assistance: GitHub Copilot, the Azure DevOps and GitHub MCP servers, GitHub Agentic Workflows and Azure SRE Agent.</p>
+      <div class="callout note">
+        <p class="ct-title">Using these notes for AZ-401</p>
+        <p>These notes cover AZ-400 only. Much of the Azure DevOps and GitHub groundwork overlaps with AZ-401: branching, package feeds, deployment strategies, authentication and secrets. The agentic and AI-assisted objectives aren't covered here, though, so study from the <a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-401" target="_blank" rel="noopener">AZ-401 study guide</a> itself.</p>
+      </div>
+      <p style="font-size:.9rem;color:var(--text-muted)">Sources: <a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400" target="_blank" rel="noopener">AZ-400 study guide</a> · <a href="https://learn.microsoft.com/en-us/credentials/support/retired-certification-exams" target="_blank" rel="noopener">Exam and assessment lab retirement</a> · <a href="https://learn.microsoft.com/en-us/credentials/support/credential-retirement" target="_blank" rel="noopener">Credential retirement</a> · <a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-401/" target="_blank" rel="noopener">AZ-401 exam page</a>. Microsoft notes that retirement dates are subject to change, so check them before you book.</p>
 
       <!-- ===================== -->
       <h2 id="weighting">Weighting — where to spend your time</h2>
@@ -114,7 +146,7 @@
             <tr><td>Exam page</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/" target="_blank" rel="noopener">AZ-400 exam</a></td></tr>
             <tr><td>Study guide (skills measured)</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400" target="_blank" rel="noopener">Official study guide</a></td></tr>
             <tr><td>Certification</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/devops-engineer/" target="_blank" rel="noopener">DevOps Engineer Expert</a></td></tr>
-            <tr><td>Free practice assessment</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/practice/assessment" target="_blank" rel="noopener">Practice questions</a></td></tr>
+            <tr><td>Practice assessment</td><td><a href="https://aka.ms/AZ400-PA" target="_blank" rel="noopener">New experience on AI Skills Navigator</a> (sign-in required) · <a href="https://aka.ms/AZ400-LearnPA" target="_blank" rel="noopener">legacy version on Learn</a> (no longer updated)</td></tr>
             <tr><td>Learning paths</td><td><a href="https://learn.microsoft.com/en-us/training/courses/az-400t00" target="_blank" rel="noopener">Course AZ-400T00</a></td></tr>
             <tr><td>Azure DevOps docs</td><td><a href="https://learn.microsoft.com/en-us/azure/devops/" target="_blank" rel="noopener">learn.microsoft.com/azure/devops</a></td></tr>
             <tr><td>GitHub Actions docs</td><td><a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">docs.github.com/actions</a></td></tr>
@@ -122,6 +154,9 @@
             <tr><td>Azure Monitor docs</td><td><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" target="_blank" rel="noopener">Azure Monitor documentation</a></td></tr>
             <tr><td>DevOps resource center</td><td><a href="https://learn.microsoft.com/en-us/devops/" target="_blank" rel="noopener">learn.microsoft.com/devops</a></td></tr>
             <tr><td>Exam sandbox</td><td><a href="https://aka.ms/examdemo" target="_blank" rel="noopener">Try the exam UI</a></td></tr>
+            <tr><td>Retirement dates</td><td><a href="https://learn.microsoft.com/en-us/credentials/support/retired-certification-exams" target="_blank" rel="noopener">Exam and assessment lab retirement</a> · <a href="https://learn.microsoft.com/en-us/credentials/support/credential-retirement" target="_blank" rel="noopener">Credential retirement</a></td></tr>
+            <tr><td>Successor exam</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-401/" target="_blank" rel="noopener">AZ-401 exam</a> · <a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-401" target="_blank" rel="noopener">AZ-401 study guide</a></td></tr>
+            <tr><td>Successor certification</td><td><a href="https://learn.microsoft.com/en-us/credentials/certifications/agentic-devops-engineer-expert/" target="_blank" rel="noopener">Agentic DevOps Engineer Expert</a></td></tr>
           </tbody>
         </table>
       </div>
