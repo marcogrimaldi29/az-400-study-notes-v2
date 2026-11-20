@@ -128,6 +128,32 @@
     });
   }
 
+  // ---------- RETIREMENT BANNER ----------
+  // Exam AZ-400, Microsoft Certified: DevOps Engineer Expert and its renewal
+  // assessment retire on February 1, 2027, per the official study guide and
+  // Microsoft's exam retirement list. The study guide gives no time of day, so
+  // the banner only switches to past tense once February 1 has ended in every
+  // US time zone (Feb 2 2027 12:00 UTC). Full details: Resources → #retirement.
+  var RETIREMENT_PAST_UTC = Date.UTC(2027, 1, 2, 12, 0);
+  function buildRetirementBanner() {
+    var header = document.querySelector(".site-header");
+    if (!header) return;
+    var retired = Date.now() >= RETIREMENT_PAST_UTC;
+    var bar = document.createElement("div");
+    bar.className = "retire-banner";
+    bar.setAttribute("role", "note");
+    bar.innerHTML =
+      '<span class="rb-icon" aria-hidden="true">📅</span>' +
+      "<span>" +
+        (retired
+          ? "<strong>Exam AZ-400 retired on February 1, 2027.</strong> These notes stay online for reference. Its successor is "
+          : "<strong>Exam AZ-400 retires on February 1, 2027</strong>, together with the DevOps Engineer Expert certification and its renewal. Its successor is ") +
+        "<strong>Exam AZ-401</strong> (Agentic DevOps Engineer Expert). " +
+        '<a href="' + pageHref("resources/") + '#retirement">What this means →</a>' +
+      "</span>";
+    header.parentNode.insertBefore(bar, header.nextSibling);
+  }
+
   // ---------- FOOTER ----------
   function buildFooter() {
     var f = document.createElement("footer");
@@ -170,7 +196,8 @@
         '<div class="footer-col">' +
           "<h5>Official Resources</h5>" +
           '<a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-400" target="_blank" rel="noopener">AZ-400 Study Guide</a>' +
-          '<a href="https://learn.microsoft.com/en-us/credentials/certifications/exams/az-400/practice/assessment" target="_blank" rel="noopener">Free practice assessment</a>' +
+          '<a href="https://aka.ms/AZ400-PA" target="_blank" rel="noopener">Practice assessment</a>' +
+          '<a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-401" target="_blank" rel="noopener">AZ-401 Study Guide (successor)</a>' +
           '<a href="https://learn.microsoft.com/en-us/azure/devops/" target="_blank" rel="noopener">Azure DevOps docs</a>' +
           '<a href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions docs</a>' +
           '<a href="https://learn.microsoft.com/en-us/azure/azure-monitor/" target="_blank" rel="noopener">Azure Monitor docs</a>' +
@@ -350,6 +377,7 @@
   loadUmami();
   document.addEventListener("DOMContentLoaded", function () {
     buildHeader();
+    buildRetirementBanner();
     buildFooter();
     buildTOC();
     animateProgress();
